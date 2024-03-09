@@ -26,6 +26,7 @@ def load_targets_config(file_path: str) -> dict[str, Any]:
         error_message = f"Unable to load configuration from '{
             file_path}'. Invalid JSON format."
     _logger.error(error_message)
+    _logger.info("Exiting..")
     sys.exit(1)
 
 
