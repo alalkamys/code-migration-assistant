@@ -3,9 +3,12 @@ from utils.helpers import checkout_branch
 from utils.helpers import identity_setup
 from utils.helpers import load_targets_config
 from utils.helpers import load_target_repos
+from utils.helpers import search_and_replace
 
+import json
 import logging.config
 import os
+import sys
 
 if __name__ == "__main__":
     logging.config.dictConfig(app_config.LOGGING_CONFIG)
@@ -16,8 +19,9 @@ if __name__ == "__main__":
         file_path=app_config.TARGETS_CONFIG_FILE)
     TARGET_REPOS = load_target_repos(repos=TARGETS_CONFIG['targetRepos'])
     TARGET_BRANCH = TARGETS_CONFIG['targetBranch']
+    REPLACEMENTS = TARGETS_CONFIG['replacements']
 
-    if len(TARGET_REPOS) > 0:
+    if len(TARGET_REPOS) > 0 and len(REPLACEMENTS) > 0:
         _logger.info(f"{len(TARGET_REPOS)} target repo(s) found")
         _logger.info("Initiating code migration assistant program..")
 
@@ -31,3 +35,14 @@ if __name__ == "__main__":
                 repo=repo, actor_username=app_config.ACTOR['username'], actor_email=app_config.ACTOR['email'])
 
             checkout_branch(repo=repo, branch_name=TARGET_BRANCH)
+
+            result = search_and_replace(
+                directory=repo.working_tree_dir, patterns=REPLACEMENTS)
+
+            _logger.info(f"Result summary: {json.dumps(
+                result, sort_keys=True, indent=4)}")
+    else:
+        _logger.info("No targets to migrate detected or replacements found")
+        _logger.info("Nothing to do")
+        _logger.info("Exiting..")
+        sys.exit(0)

@@ -9,6 +9,7 @@ from typing import Type
 import json
 import logging
 import os
+import re
 import sys
 
 _logger = logging.getLogger(app_config.APP_NAME)
@@ -74,3 +75,64 @@ def checkout_branch(branch_name: str, repo: Type[Repo]) -> None:
     else:
         _logger.info(f"'{branch_name}' doesn't exist, creating..")
         repo.git.checkout('-b', branch_name)
+
+
+def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]]:
+    """Search all files in a directory (including subdirectories) for patterns and replace them, and returns the number of matching for each given pattern."""
+    result = {pattern: {'count': 0, 'match': {}}
+              for pattern in patterns.keys()}
+    if hidden_dirs:
+        _logger("Including hidden directories in the search")
+    if len(excluded_files) > 0:
+        _logger.info(
+            f"Excluding {(' '.join("'" + f + "'" for f in excluded_files))} file(s) from the search")
+    try:
+        repo_name = os.path.basename(os.path.normpath(directory))
+        for root, dirs, files in os.walk(directory):
+            if not hidden_dirs:
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+            if len(excluded_files) > 0:
+                files_root_relpath = [os.path.join(repo_name, os.path.relpath(
+                    os.path.join(root, f), directory)) for f in files]
+                files[:] = [
+                    os.path.basename(os.path.normpath(f)) for f in files_root_relpath if not f in tuple(excluded_files)]
+            for file in files:
+                file_path = os.path.join(root, file)
+                file_relpath = os.path.relpath(file_path, directory)
+                _logger.info(
+                    f"Searching '{file_relpath}'")
+                try:
+                    with open(file_path, 'rb') as f:
+                        content = f.read().decode('utf-8', "ignore")
+                except Exception as e:
+                    _logger.error(f"Error reading file '{
+                                  file_relpath}': {str(e)}")
+                    _logger.info("Skipping..")
+                    continue
+                updated_content = content
+                for pattern, replacement in patterns.items():
+                    try:
+                        matches = re.findall(pattern, content)
+                        if matches:
+                            _logger.info(
+                                f"A match was found for pattern '{pattern}'")
+                            result[pattern]['match'][file_relpath] = len(
+                                matches)
+                            result[pattern]['count'] += len(matches)
+                        updated_content = re.sub(
+                            pattern, replacement, updated_content)
+                    except re.error as regex_error:
+                        _logger.error(f"Error in regex pattern '{
+                                      pattern}': {regex_error}")
+                if updated_content != content:
+                    try:
+                        _logger.info("Replacing..")
+                        with open(file_path, 'w') as f:
+                            f.write(updated_content)
+                    except Exception as ex:
+                        _logger.error(f"Error writing to file '{
+                                      file_relpath}': '{str(ex)}'")
+        return result
+    except Exception as ex:
+        _logger.error(f"An unexpected error occurred: '{str(ex)}'")
+        return None
