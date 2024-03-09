@@ -16,6 +16,11 @@ class AppConfig:
     REMOTE_TARGETS_CLONING_PATH = os.getenv(
         'CODE_MIGRATION_ASSISTANT_REMOTE_TARGETS_CLONING_PATH', "./remote-targets")
 
+    ACTOR = {
+        'username': "Code Migration Assistant Agent",
+        'email': 'code_migration_assistant_agent@gmail.com'
+    }
+
     LOGGING_CONFIG = {
         'version': 1,
         'disable_existing_loggers': True,
