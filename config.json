@@ -5,5 +5,6 @@
             "source": "remote-repos/test-repo",
             "type": "Local"
         }
-    ]
+    ],
+    "targetBranch": "feat/code-migration"
 }

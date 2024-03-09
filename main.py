@@ -14,6 +14,7 @@ if __name__ == "__main__":
     TARGETS_CONFIG = load_targets_config(
         file_path=app_config.TARGETS_CONFIG_FILE)
     TARGET_REPOS = load_target_repos(repos=TARGETS_CONFIG['targetRepos'])
+    TARGET_BRANCH = TARGETS_CONFIG['targetBranch']
 
     if len(TARGET_REPOS) > 0:
         _logger.info(f"{len(TARGET_REPOS)} target repo(s) found")
