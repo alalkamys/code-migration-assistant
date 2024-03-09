@@ -1,6 +1,7 @@
 from config import app_config
 
 from git import Repo
+from git.remote import PushInfoList
 from git.exc import GitCommandError
 from git.exc import NoSuchPathError
 from typing import Any
@@ -146,3 +147,26 @@ def commit_changes(repo: Type[Repo], title: str, description: str = None, stage_
     _logger.info("Committing changes..")
     repo.git.commit(OPTION, title, '-m',
                     description) if description else repo.git.commit(OPTION, title)
+
+
+def push_changes(repo: Type[Repo], target_remote: str = None, target_branch: str = None) -> Type[PushInfoList] | None:
+    if not target_remote:
+        _logger.info("No target remote was provided. Will use 'origin'..")
+        target_remote = 'origin'
+    if repo.remotes[target_remote].exists():
+        _logger.info(f"Pushing changes to '{target_remote}'..")
+        remote = repo.remotes[target_remote]
+        remote.push(f"{repo.head.name}:{
+                    target_branch if target_branch else repo.active_branch.name}")[0]
+    else:
+        _logger.warn(
+            f"'{target_remote}' remote doesn't exist, checking configured remotes..")
+        if len(repo.remotes) == 0:
+            _logger.info(
+                "No remotes were found. Make sure to configure the remote")
+            _logger.info("Aborting pushing..")
+            return None
+        _logger.info("Remote detected, using..")
+        remote = repo.remotes[0]
+        _logger.info(f"Pushing changes to '{remote.name}'..")
+        return remote.push()[0]

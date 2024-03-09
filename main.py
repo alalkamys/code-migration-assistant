@@ -4,6 +4,7 @@ from utils.helpers import commit_changes
 from utils.helpers import identity_setup
 from utils.helpers import load_targets_config
 from utils.helpers import load_target_repos
+from utils.helpers import push_changes
 from utils.helpers import search_and_replace
 
 import json
@@ -71,6 +72,8 @@ if __name__ == "__main__":
 
             commit_changes(repo=repo, title=COMMIT_TITLE, description="\n".join(
                 COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, stage_all=True)
+
+            push_changes(repo=repo)
 
         _logger.info(f"Migration summary results: {
             json.dumps(final_result, sort_keys=True, indent=4)}")
