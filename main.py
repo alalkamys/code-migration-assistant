@@ -1,5 +1,6 @@
 from config import app_config
 from utils.helpers import checkout_branch
+from utils.helpers import commit_changes
 from utils.helpers import identity_setup
 from utils.helpers import load_targets_config
 from utils.helpers import load_target_repos
@@ -56,6 +57,20 @@ if __name__ == "__main__":
                          match_count_total}' patterns matching")
 
             final_result[repo_name] = result
+
+            if match_count_total == 0:
+                if repo != TARGET_REPOS[-1]:
+                    _logger.info("Skipping to the next migration..")
+                continue
+
+            COMMIT_MESSAGE = TARGETS_CONFIG.get('commitMessage', None)
+            COMMIT_TITLE = COMMIT_MESSAGE.get(
+                'title', "feat: code migration") if COMMIT_MESSAGE else "feat: code migration"
+            COMMIT_DESCRIPTION = COMMIT_MESSAGE.get(
+                'description', None) if COMMIT_MESSAGE else None
+
+            commit_changes(repo=repo, title=COMMIT_TITLE, description="\n".join(
+                COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, stage_all=True)
 
         _logger.info(f"Migration summary results: {
             json.dumps(final_result, sort_keys=True, indent=4)}")
