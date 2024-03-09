@@ -14,7 +14,7 @@ import sys
 _logger = logging.getLogger(app_config.APP_NAME)
 
 
-def load_targets_configs(file_path: str) -> dict[str, Any]:
+def load_targets_config(file_path: str) -> dict[str, Any]:
     try:
         with open(file_path) as f:
             _logger.info(f"Loading '{file_path}'")
