@@ -39,8 +39,14 @@ if __name__ == "__main__":
             result = search_and_replace(
                 directory=repo.working_tree_dir, patterns=REPLACEMENTS)
 
-            _logger.info(f"Result summary: {json.dumps(
-                result, sort_keys=True, indent=4)}")
+            if not result:
+                _logger.error(
+                    "Migration error. Review the logs for more details")
+                if repo != TARGET_REPOS[-1]:
+                    _logger.info("Skipping to the next migration..")
+                    continue
+                _logger.info("Exiting..")
+                sys.exit(10)
     else:
         _logger.info("No targets to migrate detected or replacements found")
         _logger.info("Nothing to do")
