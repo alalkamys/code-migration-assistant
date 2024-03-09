@@ -12,5 +12,9 @@
         "name: \\s*old-org/([^\\s]+)": "name: new-org/\\1",
         "type: \\s*githubenterprise": "type: github",
         "endpoint: \\s*github-enterprise": "endpoint: github"
-    }
+    },
+    "filesToExclude": [
+        "test-repo/azure-pipelines.yaml",
+        "test-repo/terraform/dev/main.tf"
+    ]    
 }

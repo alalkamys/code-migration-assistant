@@ -20,6 +20,7 @@ if __name__ == "__main__":
     TARGET_REPOS = load_target_repos(repos=TARGETS_CONFIG['targetRepos'])
     TARGET_BRANCH = TARGETS_CONFIG['targetBranch']
     REPLACEMENTS = TARGETS_CONFIG['replacements']
+    FILES_TO_EXCLUDE = TARGETS_CONFIG.get('filesToExclude', [])
 
     if len(TARGET_REPOS) > 0 and len(REPLACEMENTS) > 0:
         _logger.info(f"{len(TARGET_REPOS)} target repo(s) found")
@@ -37,7 +38,7 @@ if __name__ == "__main__":
             checkout_branch(repo=repo, branch_name=TARGET_BRANCH)
 
             result = search_and_replace(
-                directory=repo.working_tree_dir, patterns=REPLACEMENTS)
+                directory=repo.working_tree_dir, patterns=REPLACEMENTS, excluded_files=FILES_TO_EXCLUDE)
 
             if not result:
                 _logger.error(
