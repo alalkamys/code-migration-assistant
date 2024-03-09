@@ -79,7 +79,7 @@ def checkout_branch(branch_name: str, repo: Type[Repo]) -> None:
         repo.git.checkout('-b', branch_name)
 
 
-def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]]:
+def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]] | None:
     """Search all files in a directory (including subdirectories) for patterns and replace them, and returns the number of matching for each given pattern."""
     result = {pattern: {'count': 0, 'match': {}}
               for pattern in patterns.keys()}
