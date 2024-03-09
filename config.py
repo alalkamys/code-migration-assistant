@@ -8,6 +8,8 @@ class AppConfig:
     APP_NAME = os.getenv('CODE_MIGRATION_ASSISTANT_APP_NAME',
                          "code_migration_assistant")
 
+    LOG_LEVEL = os.getenv('CODE_MIGRATION_ASSISTANT_LOG_LEVEL', "INFO")
+
     TARGETS_CONFIG_FILE = os.getenv(
         'CODE_MIGRATION_ASSISTANT_TARGETS_CONFIG_FILE', "./config.json")
 
@@ -48,7 +50,7 @@ class AppConfig:
         'loggers': {
             APP_NAME: {
                 'handlers': ['stdout_handler', 'stderr_handler'],
-                'level': 'INFO',
+                'level': LOG_LEVEL,
                 'propagate': False,
             },
         },
