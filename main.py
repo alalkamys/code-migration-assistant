@@ -24,7 +24,7 @@ if __name__ == "__main__":
     if len(TARGET_REPOS) > 0 and len(REPLACEMENTS) > 0:
         _logger.info(f"{len(TARGET_REPOS)} target repo(s) found")
         _logger.info("Initiating code migration assistant program..")
-
+        final_result = {}
         for repo in TARGET_REPOS:
             repo_name = os.path.basename(
                 os.path.normpath(repo.working_tree_dir))
@@ -47,6 +47,17 @@ if __name__ == "__main__":
                     continue
                 _logger.info("Exiting..")
                 sys.exit(10)
+
+            match_count_total = sum([result[pattern]['count']
+                                    for pattern in result.keys()])
+
+            _logger.info(f"'{repo_name}' has a total of '{
+                         match_count_total}' patterns matching")
+
+            final_result[repo_name] = result
+
+        _logger.info(f"Migration summary results: {
+            json.dumps(final_result, sort_keys=True, indent=4)}")
     else:
         _logger.info("No targets to migrate detected or replacements found")
         _logger.info("Nothing to do")
