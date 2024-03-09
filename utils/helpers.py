@@ -33,7 +33,7 @@ def load_target_repos(repos: List[dict]) -> List[Repo]:
     result = []
     for repo in repos:
         try:
-            result.append(Repo(path=repo['source']) if repo['type'].lower() == "local" else Repo.clone_from(
+            result.append(Repo(path=repo['source']) if repo['type'].strip().lower() == "local" else Repo.clone_from(
                 url=repo['source'], to_path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}"))
         except GitCommandError as git_cmd_err:
             if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
