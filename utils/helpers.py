@@ -57,6 +57,7 @@ def load_target_repos(repos: List[dict]) -> List[Repo]:
     return result
 
 
+# TODO: improve the error handling
 def identity_setup(repo: Type[Repo], actor_username: str, actor_email: str) -> None:
     config_writer = repo.config_writer()
     _logger.debug(f"Setting username to {actor_username}")
@@ -66,6 +67,7 @@ def identity_setup(repo: Type[Repo], actor_username: str, actor_email: str) -> N
     del (config_writer)
 
 
+# TODO: improve the error handling
 def checkout_branch(branch_name: str, repo: Type[Repo]) -> None:
     _logger.info(f"Requested target branch: '{
         branch_name}', checking if exists..")
@@ -138,6 +140,7 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
         return None
 
 
+# TODO: improve the error handling
 def commit_changes(repo: Type[Repo], title: str, description: str = None, stage_all: bool = False) -> None:
     OPTION = '-am' if stage_all else '-m'
     _logger.info("Committing changes..")
