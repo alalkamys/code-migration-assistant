@@ -7,6 +7,15 @@
         }
     ],
     "targetBranch": "feat/code-migration",
+    "commitMessage": {
+        "title": "Feat: Code Migration",
+        "description": [
+            "This change is to prepare for our organization code migration\n",
+            "#### What has changed?\n",
+            "- [x] Replaced all repos matched files with the required replacements",
+            "- [x] Code is ready for the ogranization required migration"
+        ]
+    },
     "replacements": {
         "https://github.mycompany.com/old-org": "https://github.com/new-org",
         "name: \\s*old-org/([^\\s]+)": "name: new-org/\\1",
@@ -16,5 +25,5 @@
     "filesToExclude": [
         "test-repo/azure-pipelines.yaml",
         "test-repo/terraform/dev/main.tf"
-    ]    
+    ]
 }
