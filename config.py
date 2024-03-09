@@ -13,6 +13,9 @@ class AppConfig:
     TARGETS_CONFIG_FILE = os.getenv(
         'CODE_MIGRATION_ASSISTANT_TARGETS_CONFIG_FILE', "./config.json")
 
+    REMOTE_TARGETS_CLONING_PATH = os.getenv(
+        'CODE_MIGRATION_ASSISTANT_REMOTE_TARGETS_CLONING_PATH', "./remote-targets")
+
     LOGGING_CONFIG = {
         'version': 1,
         'disable_existing_loggers': True,
