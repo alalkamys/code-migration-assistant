@@ -63,3 +63,14 @@ def identity_setup(repo: Type[Repo], actor_username: str, actor_email: str) -> N
     _logger.debug(f"Setting email to <{actor_email}>")
     config_writer.set_value('user', 'email', actor_email).release()
     del (config_writer)
+
+
+def checkout_branch(branch_name: str, repo: Type[Repo]) -> None:
+    _logger.info(f"Requested target branch: '{
+        branch_name}', checking if exists..")
+    if branch_name in [ref.name for ref in repo.references]:
+        _logger.info(f"'{branch_name}' already exists, switching..")
+        repo.git.checkout(branch_name)
+    else:
+        _logger.info(f"'{branch_name}' doesn't exist, creating..")
+        repo.git.checkout('-b', branch_name)

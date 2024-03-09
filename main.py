@@ -1,4 +1,5 @@
 from config import app_config
+from utils.helpers import checkout_branch
 from utils.helpers import identity_setup
 from utils.helpers import load_targets_config
 from utils.helpers import load_target_repos
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     if len(TARGET_REPOS) > 0:
         _logger.info(f"{len(TARGET_REPOS)} target repo(s) found")
         _logger.info("Initiating code migration assistant program..")
+
         for repo in TARGET_REPOS:
             repo_name = os.path.basename(
                 os.path.normpath(repo.working_tree_dir))
@@ -27,3 +29,5 @@ if __name__ == "__main__":
 
             identity_setup(
                 repo=repo, actor_username=app_config.ACTOR['username'], actor_email=app_config.ACTOR['email'])
+
+            checkout_branch(repo=repo, branch_name=TARGET_BRANCH)
