@@ -136,3 +136,10 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
     except Exception as ex:
         _logger.error(f"An unexpected error occurred: '{str(ex)}'")
         return None
+
+
+def commit_changes(repo: Type[Repo], title: str, description: str = None, stage_all: bool = False) -> None:
+    OPTION = '-am' if stage_all else '-m'
+    _logger.info("Committing changes..")
+    repo.git.commit(OPTION, title, '-m',
+                    description) if description else repo.git.commit(OPTION, title)
