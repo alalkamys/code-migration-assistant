@@ -1,0 +1,9 @@
+{
+    "targetRepos": [
+        {
+            "name": "test-repo",
+            "source": "remote-repos/test-repo",
+            "type": "Local"
+        }
+    ]
+}
