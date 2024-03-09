@@ -6,5 +6,11 @@
             "type": "Local"
         }
     ],
-    "targetBranch": "feat/code-migration"
+    "targetBranch": "feat/code-migration",
+    "replacements": {
+        "https://github.mycompany.com/old-org": "https://github.com/new-org",
+        "name: \\s*old-org/([^\\s]+)": "name: new-org/\\1",
+        "type: \\s*githubenterprise": "type: github",
+        "endpoint: \\s*github-enterprise": "endpoint: github"
+    }
 }
