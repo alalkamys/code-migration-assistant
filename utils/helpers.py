@@ -17,16 +17,37 @@ _logger = logging.getLogger(app_config.APP_NAME)
 
 
 def load_targets_config(file_path: str) -> dict[str, Any]:
+    """Load configuration from a JSON file.
+
+    Args:
+        file_path (str): The path to the JSON configuration file.
+
+    Returns:
+        dict: A dictionary containing the loaded configuration.
+
+    Raises:
+        FileNotFoundError: If the configuration file is not found.
+        json.JSONDecodeError: If the JSON content is not valid.
+        Exception: For any other unexpected error during loading.
+    """
     try:
-        with open(file_path) as f:
-            _logger.info(f"Loading '{file_path}'")
+        file_abspath = os.path.abspath(file_path)
+        with open(file_abspath) as f:
+            _logger.info(f"Loading '{file_abspath}'")
             return json.load(f)
+
     except FileNotFoundError:
         error_message = f"Configuration file '{
-            file_path}' not found."
+            file_abspath}' not found."
+
     except json.JSONDecodeError:
         error_message = f"Unable to load configuration from '{
-            file_path}'. Invalid JSON format."
+            file_abspath}'. Invalid JSON format."
+
+    except Exception as e:
+        error_message = f"An unexpected error occurred while loading '{
+            file_abspath}': {str(e).strip()}"
+
     _logger.error(error_message)
     _logger.info("Exiting..")
     sys.exit(1)
