@@ -160,7 +160,7 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
     result = {pattern: {'count': 0, 'match': {}}
               for pattern in patterns.keys()}
     if hidden_dirs:
-        _logger("Including hidden directories in the search")
+        _logger.info("Including hidden directories in the search")
     if len(excluded_files) > 0:
         _logger.info(
             f"Excluding {(' '.join("'" + f + "'" for f in excluded_files))} file(s) from the search")
