@@ -78,6 +78,7 @@ if __name__ == "__main__":
 
             final_result[repo_name] = result
 
+            # TODO: add a scenario for handling match_count_total == 0 and there are already staged/committed changes, they should be pushed and a PR is raised for them
             if match_count_total == 0:
                 if repo != TARGET_REPOS[-1]:
                     _logger.info("Skipping to the next migration..")

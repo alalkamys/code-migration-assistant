@@ -154,7 +154,7 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bo
 
     return False
 
-
+# TODO: find a way to determine if the end result contains some errors but were skipped
 def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]] | None:
     """Search all files in a directory (including subdirectories) for patterns and replace them, and returns the number of matching for each given pattern."""
     result = {pattern: {'count': 0, 'match': {}}
