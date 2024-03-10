@@ -1,5 +1,7 @@
 from utils import filters
 
+from git import RemoteProgress
+from logging import Logger
 import logging
 import os
 
@@ -67,6 +69,16 @@ class AppConfig:
             'handlers': ['stdout_handler', 'stderr_handler'],
         }
     }
+
+
+class RemoteProgressReporter(RemoteProgress):
+    def __init__(self, logger: Logger) -> None:
+        super().__init__()
+        self._logger = logger
+
+    def update(self, op_code, cur_count, max_count=None, message=""):
+        self._logger.debug(f"{op_code} {cur_count} {max_count} {
+            cur_count / (max_count or 100.0)} {message or "NO MESSAGE"}")
 
 
 app_config = AppConfig
