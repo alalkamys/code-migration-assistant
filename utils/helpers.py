@@ -86,14 +86,29 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
     return result
 
 
-# TODO: improve the error handling
 def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
-    config_writer = repo.config_writer()
-    _logger.debug(f"Setting username to {actor_username}")
-    config_writer.set_value('user', 'name', actor_username).release()
-    _logger.debug(f"Setting email to <{actor_email}>")
-    config_writer.set_value('user', 'email', actor_email).release()
-    del (config_writer)
+    """Set up identity configuration for a GitPython repository.
+
+    Args:
+        repo (Repo): The GitPython repository object.
+        actor_username (str): The username to set.
+        actor_email (str): The email address to set.
+
+    Returns:
+        bool: True if the identity configuration was set successfully, False otherwise.
+    """
+    try:
+        config_writer = repo.config_writer()
+        _logger.debug(f"Setting username to {actor_username}")
+        config_writer.set_value('user', 'name', actor_username).release()
+        _logger.debug(f"Setting email to <{actor_email}>")
+        config_writer.set_value('user', 'email', actor_email).release()
+        del (config_writer)
+        return True
+    except Exception as e:
+        _logger.error(f"An error occurred while setting up identity configuration: {
+                      str(e).strip()}")
+        return False
 
 
 def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bool:
