@@ -132,9 +132,14 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bo
         else:
             _logger.info(f"'{branch_name}' doesn't exist, creating..")
             from_branch = from_branch or repo.active_branch.name
-            branch = repo.create_head(branch_name, commit=from_branch)
-            _logger.info(f"Created new branch '{
-                         branch_name}' based on '{from_branch}' branch")
+            if from_branch in repo.branches:
+                branch = repo.create_head(branch_name, commit=from_branch)
+                _logger.info(f"Created new branch '{
+                    branch_name}' based on '{from_branch}' branch")
+            else:
+                _logger.error(
+                    f"Error: '{from_branch}' based on branch doesn't exist")
+                return False
 
         branch.checkout()
         _logger.info(f"Checked out branch '{branch_name}' successfully.")
