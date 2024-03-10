@@ -69,37 +69,41 @@ def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
 
 
 def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bool:
-    if branch_name in repo.branches:
-        _logger.info(f"'{branch_name}' branch already exists, checking out..")
-        branch = repo.branches[branch_name]
-        try:
-            branch.checkout()
-        except GitCommandError as git_cmd_error:
-            _logger.error(
-                f"'git-checkout' command error: {str(git_cmd_error).strip()}")
-            return False
-        except Exception as e:
-            _logger.error(f"Unexpected error while checking out to '{
-                          branch_name}': {str(e).strip()}")
-            return False
-    else:
-        _logger.info(f"'{branch_name}' doesn't exist, creating..")
-        from_branch = from_branch or repo.active_branch.name
-        new_branch = repo.create_head(
-            path=branch_name, commit=from_branch or repo.active_branch.name)
-        _logger.info(f"Created new branch '{
-                     branch_name}' based on '{from_branch}' branch")
-        try:
-            new_branch.checkout()
-        except GitCommandError as git_cmd_error:
-            _logger.error(
-                f"'git-checkout' command error: {str(git_cmd_error).strip()}")
-            return False
-        except Exception as e:
-            _logger.error(f"Unexpected error while checking out to '{
-                          branch_name}': {str(e).strip()}")
-            return False
-    return True
+    """Checkout or create a new branch in the local repository.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        branch_name (str): The name of the branch to checkout or create.
+        from_branch (str, optional): The name of the base branch to create the new branch from.
+            If None, create the new branch from the current branch. Defaults to None.
+
+    Returns:
+        bool: True if the branch was successfully checked out or created, False otherwise.
+    """
+    try:
+        if branch_name in repo.branches:
+            _logger.info(
+                f"'{branch_name}' branch already exists, checking out..")
+            branch = repo.branches[branch_name]
+        else:
+            _logger.info(f"'{branch_name}' doesn't exist, creating..")
+            from_branch = from_branch or repo.active_branch.name
+            branch = repo.create_head(branch_name, commit=from_branch)
+            _logger.info(f"Created new branch '{
+                         branch_name}' based on '{from_branch}' branch")
+
+        branch.checkout()
+        _logger.info(f"Checked out branch '{branch_name}' successfully.")
+        return True
+
+    except GitCommandError as e:
+        _logger.error(f"'git-checkout' command error: {str(e).strip()}")
+
+    except Exception as e:
+        _logger.error(f"Unexpected error while checking out to '{
+                      branch_name}': {str(e).strip()}")
+
+    return False
 
 
 def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]] | None:
