@@ -1,6 +1,7 @@
 from config import app_config
 from config import RemoteProgressReporter
 
+from git import Actor
 from git import Repo
 from git.remote import PushInfo
 from git.remote import PushInfoList
@@ -210,12 +211,46 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
         return None
 
 
-# TODO: improve the error handling
-def commit_changes(repo: Repo, title: str, description: str = None, stage_all: bool = False) -> None:
-    OPTION = '-am' if stage_all else '-m'
-    _logger.info("Committing changes..")
-    repo.git.commit(OPTION, title, '-m',
-                    description) if description else repo.git.commit(OPTION, title)
+def commit_changes(repo: Repo, title: str, description: str = None, author: Actor = None, committer: Actor = None, auto_stage: bool = False) -> bool:
+    """Commit changes to the repository.
+
+    Args:
+        repo (Repo): The GitPython repository object.
+        title (str): The title of the commit.
+        description (str, optional): The description of the commit. Defaults to None.
+        author (Actor, optional): The author of the commit. Defaults to None.
+        committer (Actor, optional): The committer of the commit. Defaults to None.
+        auto_stage (bool, optional): Whether to automatically stage all changes before committing. Defaults to False.
+
+    Returns:
+        bool: True if changes were successfully committed, False otherwise.
+    """
+    try:
+        if auto_stage:
+            _logger.debug("'auto_stage' mode enabled.")
+            _logger.debug("Staging modified/deleted files..\n")
+            repo.git.add(u=True)
+        commit_message = title
+        if description:
+            commit_message += f"\n{description}"
+        _logger.debug("Commit Details:")
+        _logger.debug("---------------")
+        _logger.debug(f"Title: {title}")
+        if description:
+            _logger.debug(f"Description: {description}")
+        if author:
+            _logger.debug(f"Author: {author.name} <{author.email}>")
+        if committer:
+            _logger.debug(f"Committer: {committer.name} <{committer.email}>")
+        _logger.debug(f"Commit Message: {commit_message}")
+        _logger.info("Committing changes..")
+        repo.index.commit(commit_message, author=author, committer=committer)
+        _logger.info("Changes committed successfully.")
+        return True
+    except Exception as e:
+        _logger.error(f"An error occurred while committing changes: {
+                      str(e).strip()}")
+        return False
 
 
 def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: str | None = None, timeout: int | None = 180) -> bool:

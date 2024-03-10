@@ -90,9 +90,18 @@ if __name__ == "__main__":
                 'description', None) if COMMIT_MESSAGE else None
 
             commit_changes(repo=repo, title=COMMIT_TITLE, description="\n".join(
-                COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, stage_all=True)
+                COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, auto_stage=True)
 
-            push_changes(repo=repo)
+            changes_pushed = push_changes(repo=repo)
+
+            if not changes_pushed:
+                _logger.error(
+                    f"'{repo_name}' remote push process failed. Review the logs for more details")
+                if repo != TARGET_REPOS[-1]:
+                    _logger.info("Skipping to the next migration..")
+                    continue
+                _logger.info("Exiting..")
+                sys.exit(4)
 
         _logger.info(f"Migration summary results: {
             json.dumps(final_result, sort_keys=True, indent=4)}")
