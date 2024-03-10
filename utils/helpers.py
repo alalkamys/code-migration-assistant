@@ -54,6 +54,14 @@ def load_targets_config(file_path: str) -> dict[str, Any]:
 
 
 def load_target_repos(repos: list[dict]) -> list[Repo]:
+    """Load target repositories.
+
+    Args:
+        repos (List[dict]): A list of dictionaries containing repository information.
+
+    Returns:
+        List[Repo]: A list of gitpython Repo objects representing the loaded repositories.
+    """
     result = []
     for repo in repos:
         try:
@@ -61,21 +69,20 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
                 url=repo['source'], to_path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}"))
         except GitCommandError as git_cmd_err:
             if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
-                cwd = os.getcwd()
-                repo_absolute_path = os.path.abspath(os.path.join(
-                    cwd, f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}"))
-                _logger.info(f"'{repo_absolute_path}' already exists, using..")
+                repo_abspath = os.path.abspath(
+                    f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}")
+                _logger.info(f"'{repo_abspath}' already exists, using..")
                 result.append(
                     Repo(path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}"))
             else:
                 _logger.error(f"Unexpected GitCommandError: {
-                              str(git_cmd_err)}")
+                              str(git_cmd_err).strip()}")
         except NoSuchPathError:
             _logger.error(f"Invalid 'Remote' repo URL '{
                           repo['source']}' no such path. Check '{repo['name']}' source URL")
         except Exception as e:
             _logger.error(f"Unexpected error when loading '{
-                          repo['name']}': {str(e)}")
+                          repo['name']}': {str(e).strip()}")
     return result
 
 
