@@ -6,7 +6,10 @@
             "type": "Local"
         }
     ],
-    "targetBranch": "feat/code-migration",
+    "targetBranch": {
+        "name": "feat/code-migration",
+        "from": "main"
+    },
     "commitMessage": {
         "title": "Feat: Code Migration",
         "description": [

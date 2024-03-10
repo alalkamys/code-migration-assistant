@@ -37,43 +37,45 @@ if __name__ == "__main__":
             identity_setup(
                 repo=repo, actor_username=app_config.ACTOR['username'], actor_email=app_config.ACTOR['email'])
 
-            checkout_branch(repo=repo, branch_name=TARGET_BRANCH)
+            checked = checkout_branch(
+                repo=repo, branch_name=TARGET_BRANCH['name'], from_branch=TARGET_BRANCH.get('from', None))
 
-            result = search_and_replace(
-                directory=repo.working_tree_dir, patterns=REPLACEMENTS, excluded_files=FILES_TO_EXCLUDE)
+            if checked:
+                result = search_and_replace(
+                    directory=repo.working_tree_dir, patterns=REPLACEMENTS, excluded_files=FILES_TO_EXCLUDE)
 
-            if not result:
-                _logger.error(
-                    "Migration error. Review the logs for more details")
-                if repo != TARGET_REPOS[-1]:
-                    _logger.info("Skipping to the next migration..")
+                if not result:
+                    _logger.error(
+                        "Migration error. Review the logs for more details")
+                    if repo != TARGET_REPOS[-1]:
+                        _logger.info("Skipping to the next migration..")
+                        continue
+                    _logger.info("Exiting..")
+                    sys.exit(10)
+
+                match_count_total = sum([result[pattern]['count']
+                                        for pattern in result.keys()])
+
+                _logger.info(f"'{repo_name}' has a total of '{
+                    match_count_total}' patterns matching")
+
+                final_result[repo_name] = result
+
+                if match_count_total == 0:
+                    if repo != TARGET_REPOS[-1]:
+                        _logger.info("Skipping to the next migration..")
                     continue
-                _logger.info("Exiting..")
-                sys.exit(10)
 
-            match_count_total = sum([result[pattern]['count']
-                                    for pattern in result.keys()])
+                COMMIT_MESSAGE = TARGETS_CONFIG.get('commitMessage', None)
+                COMMIT_TITLE = COMMIT_MESSAGE.get(
+                    'title', "feat: code migration") if COMMIT_MESSAGE else "feat: code migration"
+                COMMIT_DESCRIPTION = COMMIT_MESSAGE.get(
+                    'description', None) if COMMIT_MESSAGE else None
 
-            _logger.info(f"'{repo_name}' has a total of '{
-                         match_count_total}' patterns matching")
+                commit_changes(repo=repo, title=COMMIT_TITLE, description="\n".join(
+                    COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, stage_all=True)
 
-            final_result[repo_name] = result
-
-            if match_count_total == 0:
-                if repo != TARGET_REPOS[-1]:
-                    _logger.info("Skipping to the next migration..")
-                continue
-
-            COMMIT_MESSAGE = TARGETS_CONFIG.get('commitMessage', None)
-            COMMIT_TITLE = COMMIT_MESSAGE.get(
-                'title', "feat: code migration") if COMMIT_MESSAGE else "feat: code migration"
-            COMMIT_DESCRIPTION = COMMIT_MESSAGE.get(
-                'description', None) if COMMIT_MESSAGE else None
-
-            commit_changes(repo=repo, title=COMMIT_TITLE, description="\n".join(
-                COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, stage_all=True)
-
-            push_changes(repo=repo)
+                push_changes(repo=repo)
 
         _logger.info(f"Migration summary results: {
             json.dumps(final_result, sort_keys=True, indent=4)}")

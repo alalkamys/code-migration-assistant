@@ -68,16 +68,38 @@ def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
     del (config_writer)
 
 
-# TODO: improve the error handling
-def checkout_branch(branch_name: str, repo: Repo) -> None:
-    _logger.info(f"Requested target branch: '{
-        branch_name}', checking if exists..")
-    if branch_name in [ref.name for ref in repo.references]:
-        _logger.info(f"'{branch_name}' already exists, switching..")
-        repo.git.checkout(branch_name)
+def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bool:
+    if branch_name in repo.branches:
+        _logger.info(f"'{branch_name}' branch already exists, checking out..")
+        branch = repo.branches[branch_name]
+        try:
+            branch.checkout()
+        except GitCommandError as git_cmd_error:
+            _logger.error(
+                f"'git-checkout' command error: {str(git_cmd_error).strip()}")
+            return False
+        except Exception as e:
+            _logger.error(f"Unexpected error while checking out to '{
+                          branch_name}': {str(e).strip()}")
+            return False
     else:
         _logger.info(f"'{branch_name}' doesn't exist, creating..")
-        repo.git.checkout('-b', branch_name)
+        from_branch = from_branch or repo.active_branch.name
+        new_branch = repo.create_head(
+            path=branch_name, commit=from_branch or repo.active_branch.name)
+        _logger.info(f"Created new branch '{
+                     branch_name}' based on '{from_branch}' branch")
+        try:
+            new_branch.checkout()
+        except GitCommandError as git_cmd_error:
+            _logger.error(
+                f"'git-checkout' command error: {str(git_cmd_error).strip()}")
+            return False
+        except Exception as e:
+            _logger.error(f"Unexpected error while checking out to '{
+                          branch_name}': {str(e).strip()}")
+            return False
+    return True
 
 
 def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]] | None:
