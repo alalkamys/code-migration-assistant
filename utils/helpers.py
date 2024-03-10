@@ -5,8 +5,6 @@ from git.remote import PushInfoList
 from git.exc import GitCommandError
 from git.exc import NoSuchPathError
 from typing import Any
-from typing import List
-from typing import Type
 import json
 import logging
 import os
@@ -32,7 +30,7 @@ def load_targets_config(file_path: str) -> dict[str, Any]:
     sys.exit(1)
 
 
-def load_target_repos(repos: List[dict]) -> List[Repo]:
+def load_target_repos(repos: list[dict]) -> list[Repo]:
     result = []
     for repo in repos:
         try:
@@ -59,7 +57,7 @@ def load_target_repos(repos: List[dict]) -> List[Repo]:
 
 
 # TODO: improve the error handling
-def identity_setup(repo: Type[Repo], actor_username: str, actor_email: str) -> None:
+def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
     config_writer = repo.config_writer()
     _logger.debug(f"Setting username to {actor_username}")
     config_writer.set_value('user', 'name', actor_username).release()
@@ -69,7 +67,7 @@ def identity_setup(repo: Type[Repo], actor_username: str, actor_email: str) -> N
 
 
 # TODO: improve the error handling
-def checkout_branch(branch_name: str, repo: Type[Repo]) -> None:
+def checkout_branch(branch_name: str, repo: Repo) -> None:
     _logger.info(f"Requested target branch: '{
         branch_name}', checking if exists..")
     if branch_name in [ref.name for ref in repo.references]:
@@ -142,14 +140,14 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
 
 
 # TODO: improve the error handling
-def commit_changes(repo: Type[Repo], title: str, description: str = None, stage_all: bool = False) -> None:
+def commit_changes(repo: Repo, title: str, description: str = None, stage_all: bool = False) -> None:
     OPTION = '-am' if stage_all else '-m'
     _logger.info("Committing changes..")
     repo.git.commit(OPTION, title, '-m',
                     description) if description else repo.git.commit(OPTION, title)
 
 
-def push_changes(repo: Type[Repo], target_remote: str = None, target_branch: str = None) -> Type[PushInfoList] | None:
+def push_changes(repo: Repo, target_remote: str = None, target_branch: str = None) -> PushInfoList | None:
     if not target_remote:
         _logger.info("No target remote was provided. Will use 'origin'..")
         target_remote = 'origin'
