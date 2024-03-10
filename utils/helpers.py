@@ -1,6 +1,8 @@
 from config import app_config
+from config import RemoteProgressReporter
 
 from git import Repo
+from git.remote import PushInfo
 from git.remote import PushInfoList
 from git.exc import GitCommandError
 from git.exc import NoSuchPathError
@@ -147,24 +149,78 @@ def commit_changes(repo: Repo, title: str, description: str = None, stage_all: b
                     description) if description else repo.git.commit(OPTION, title)
 
 
-def push_changes(repo: Repo, target_remote: str = None, target_branch: str = None) -> PushInfoList | None:
-    if not target_remote:
-        _logger.info("No target remote was provided. Will use 'origin'..")
-        target_remote = 'origin'
-    if repo.remotes[target_remote].exists():
-        _logger.info(f"Pushing changes to '{target_remote}'..")
-        remote = repo.remotes[target_remote]
-        remote.push(f"{repo.head.name}:{
-                    target_branch if target_branch else repo.active_branch.name}")[0]
-    else:
-        _logger.warn(
-            f"'{target_remote}' remote doesn't exist, checking configured remotes..")
-        if len(repo.remotes) == 0:
-            _logger.info(
-                "No remotes were found. Make sure to configure the remote")
-            _logger.info("Aborting pushing..")
-            return None
-        _logger.info("Remote detected, using..")
-        remote = repo.remotes[0]
-        _logger.info(f"Pushing changes to '{remote.name}'..")
-        return remote.push()[0]
+def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: str | None = None, timeout: int | None = 180) -> bool:
+    """Push changes to the remote repository.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        remote_name (str, optional): The name of the remote repository to push changes to. Defaults to 'origin'.
+        remote_branch_name (str | None, optional): The name of the remote branch to push changes to. 
+            If None, the active local branch's name is used. Defaults to None.
+        timeout (int | None, optional): The timeout (in seconds) for the push operation. Defaults to 180.
+
+    Returns:
+        bool: True if the push operation is successful, False otherwise.
+
+    Raises:
+        IndexError: If the specified remote repository does not exist.
+        AssertionError: If the specified remote is not valid or if the push operation fails.
+
+    Notes:
+        This function pushes changes from the active local branch to the specified remote branch. 
+        It handles various scenarios such as existing and non-existing remotes, and provides detailed logging 
+        information during the push operation. The timeout parameter allows customization of the maximum time 
+        allowed for the push operation.
+
+    Example:
+        # Push changes from the active branch to the 'main' branch of the remote repository 'origin'
+        repo = Repo("/path/to/local/repository")
+        push_changes(repo, remote_name='origin', remote_branch_name='main')
+    """
+    try:
+        assert repo.remotes[remote_name].exists()
+        remote = repo.remotes[remote_name]
+        branch_name = repo.active_branch.name
+        remote_branch_name = remote_branch_name if remote_branch_name else branch_name
+        _logger.info(f"Pushing changes to '{
+                     remote_branch_name}' branch of remote '{remote_name}'...")
+        result: PushInfoList = remote.push(
+            refspec=f"{branch_name}:{remote_branch_name}", progress=RemoteProgressReporter(_logger), kill_after_timeout=timeout)
+        try:
+            assert len(result) != 0
+            VALID_PUSH_INFO_FLAGS: list[int] = [PushInfo.FAST_FORWARD, PushInfo.NEW_HEAD,
+                                                PushInfo.UP_TO_DATE, PushInfo.FORCED_UPDATE, PushInfo.NEW_TAG]
+            for push_info in result:
+                _logger.debug("+------------+")
+                _logger.debug("| Push Info: |")
+                _logger.debug("+------------+")
+                _logger.debug(f"Flag: {push_info.flags}")
+                _logger.debug(f"Local ref: {push_info.local_ref}")
+                _logger.debug(f"Remote Ref: {push_info.remote_ref}")
+                _logger.debug(f"Remote ref string: {
+                    push_info.remote_ref_string}")
+                _logger.debug(f"Old Commit: {push_info.old_commit}")
+                _logger.debug(f"Summary: {push_info.summary.strip()}")
+                if push_info.flags not in VALID_PUSH_INFO_FLAGS:
+                    if push_info.flags == PushInfo.ERROR:
+                        _logger.error(
+                            f"Incomplete push error: Push contains rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
+                    else:
+                        _logger.error(
+                            "Unexpected push error, maybe the remote rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
+                    return False
+        except AssertionError:
+            _logger.error(f"Pushing changes to remote '{
+                          remote_name}' completely failed. Check your internet connection and run in 'debug' mode to see the remote push progress.")
+            return False
+        _logger.info(f"Changes pushed successfully to '{
+            branch_name}' branch of remote '{remote_name}'.")
+        return True
+    except IndexError:
+        _logger.error(f"Error accessing remote '{
+                      remote_name}': No such remote")
+        return False
+    except AssertionError:
+        _logger.error(
+            f"'{remote_name}' is not a valid remote. Valid remotes have an entry in the repository's configuration")
+        return False
