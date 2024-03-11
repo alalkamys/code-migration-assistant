@@ -1,6 +1,12 @@
 from config import app_config
 from config import RemoteProgressReporter
 
+from typing import Union
+from azure.devops.connection import Connection
+from azure.devops.credentials import BasicAuthentication
+from azure.devops.v7_0.git import GitPullRequest
+from azure.devops.v7_0.git import GitRepository
+from azure.devops.v7_0.git.git_client import GitClient
 from git import Actor
 from git import Repo
 from git.remote import PushInfo
@@ -153,6 +159,7 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bo
                       branch_name}': {str(e).strip()}")
 
     return False
+
 
 # TODO: find a way to determine if the end result contains some errors but were skipped
 def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]] | None:
@@ -332,4 +339,90 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
     except AssertionError:
         _logger.error(
             f"'{remote_name}' is not a valid remote. Valid remotes have an entry in the repository's configuration")
+        return False
+
+
+def raise_pull_request_azure_devops(base_url: str, project: str, repo_id: str, pull_request_payload: dict[str, Any], creds: BasicAuthentication) -> GitPullRequest:
+    connection = Connection(base_url=base_url,
+                            creds=creds,
+                            user_agent="code-migration-assistant-agent")
+
+    git_client: GitClient = connection.clients.get_git_client()
+
+    _logger.info(f"Searching for '{repo_id}' in '{project}' project..")
+    target_repo: GitRepository = git_client.get_repository(project=project,
+                                                           repository_id=repo_id)
+
+    _logger.info(f"Found '{project}/{repo_id}'")
+    _logger.info("Raising pull request..")
+    pull_request: GitPullRequest = git_client.create_pull_request(git_pull_request_to_create=pull_request_payload,
+                                                                  repository_id=target_repo.id)
+    _logger.info(f"Pull request raised successfully with an id='{
+                 pull_request.pull_request_id}'")
+    return pull_request
+
+
+def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]]) -> bool:
+    try:
+        pull_request: Union[GitPullRequest, None] = None
+        scm_provider_data: dict[str, str] = pull_request_config['providerData']
+        scm_provider_type = scm_provider_data['type'].strip()
+        pull_request_payload: dict[str, Any] = pull_request_config['payload']
+
+        if scm_provider_type.lower() == "azure devops":
+            _logger.info(f"'{scm_provider_type}' pull request type detected")
+            AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', None)
+
+            if not AZURE_DEVOPS_PAT:
+                _logger.error("Error: Personal Access Token (PAT) not found. Please set 'AZURE_DEVOPS_PAT' environment variable with your Azure DevOps Personal Access Token (PAT) before running Code Migration Assistant")
+                _logger.info("Aborting..")
+                return False
+
+            base_url = scm_provider_data['baseUrl'].strip()
+            project = scm_provider_data['project'].strip()
+            repo_name = os.path.basename(
+                os.path.normpath(repo.working_tree_dir))
+            pull_request_payload['description'] = "\n".join(
+                pull_request_payload.get('description', []))
+            pull_request_payload['sourceRefName'] = f"refs/heads/{
+                repo.active_branch.name}"
+            target_ref_name: str = pull_request_payload['targetRefName']
+            if not target_ref_name.startswith("refs/heads/"):
+                _logger.info(f"targetRefName before: {
+                             pull_request_payload['targetRefName']}")
+                pull_request_payload['targetRefName'] = f"refs/heads/{
+                    target_ref_name}"
+                _logger.info(f"targetRefName after: {
+                             pull_request_payload['targetRefName']}")
+            pull_request = raise_pull_request_azure_devops(base_url=base_url,
+                                                           project=project,
+                                                           repo_id=repo_name,
+                                                           pull_request_payload=pull_request_payload,
+                                                           creds=BasicAuthentication('PAT', AZURE_DEVOPS_PAT))
+            if pull_request:
+                return True
+
+            return False
+        else:
+            _logger.error(f"Unsupported pull request type: '{
+                          scm_provider_type}'")
+            return False
+    except KeyError as key_err:
+        missing_key = str(key_err).strip()
+        path_to_key = missing_key
+        if missing_key == 'payload':
+            path_to_key = f"pullRequest.{missing_key}"
+        if missing_key == 'providerData':
+            path_to_key = f"pullRequest.{missing_key}"
+        if missing_key == 'type':
+            path_to_key = f"pullRequest.providerData.{missing_key}"
+        if missing_key == 'baseUrl':
+            path_to_key = f"pullRequest.providerData.{missing_key}"
+        if missing_key == 'project':
+            path_to_key = f"pullRequest.providerData.{missing_key}"
+        targets_config_file_path = os.path.abspath(
+            app_config.TARGETS_CONFIG_FILE)
+        _logger.error(
+            f"'{missing_key}' key not found. Please make sure to provide '{path_to_key}' in '{targets_config_file_path}'")
+        _logger.info("aborting..")
         return False

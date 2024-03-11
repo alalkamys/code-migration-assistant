@@ -19,6 +19,36 @@
             "- [x] Code is ready for the ogranization required migration"
         ]
     },
+    "pullRequest": {
+        "providerData": {
+            "type": "Azure DevOps",
+            "baseUrl": "https://dev.azure.com/TestOrg/",
+            "project": "Test"
+        },
+        "payload": {
+            "targetRefName": "main",
+            "title": "Feat: Code Migration",
+            "description": [
+                "This change is to prepare for our organization code migration\n",
+                "#### What has changed?\n",
+                "- [x] Replaced all repos matched files with the required replacements",
+                "- [x] Code is ready for the ogranization required migration"
+            ],
+            "labels": [
+                {
+                    "name": "Migration"
+                },
+                {
+                    "name": "Code Migration Assistant"
+                }
+            ],
+            "workItemRefs": [
+                {
+                    "id": "9691"
+                }
+            ]
+        }
+    },
     "replacements": {
         "https://github.mycompany.com/old-org": "https://github.com/new-org",
         "name: \\s*old-org/([^\\s]+)": "name: new-org/\\1",

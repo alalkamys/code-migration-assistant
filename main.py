@@ -5,6 +5,7 @@ from utils.helpers import identity_setup
 from utils.helpers import load_targets_config
 from utils.helpers import load_target_repos
 from utils.helpers import push_changes
+from utils.helpers import raise_pull_request
 from utils.helpers import search_and_replace
 
 import json
@@ -103,6 +104,25 @@ if __name__ == "__main__":
                     continue
                 _logger.info("Exiting..")
                 sys.exit(4)
+
+            PULL_REQUEST = TARGETS_CONFIG.get('pullRequest', None)
+
+            if not PULL_REQUEST:
+                _logger.info(f"No pull request data configured for '{
+                             repo_name}'. Skipping..")
+                continue
+
+            pull_request_raised = raise_pull_request(
+                repo=repo, pull_request_config=PULL_REQUEST)
+
+            if not pull_request_raised:
+                _logger.error(
+                    f"'{repo_name}' pull request raising failed. Review the logs for more details")
+                if repo != TARGET_REPOS[-1]:
+                    _logger.info("Skipping to the next migration..")
+                    continue
+                _logger.info("Exiting..")
+                sys.exit(5)
 
         _logger.info(f"Migration summary results: {
             json.dumps(final_result, sort_keys=True, indent=4)}")
