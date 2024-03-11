@@ -4,6 +4,8 @@ from config import RemoteProgressReporter
 from typing import Union
 from azure.devops.connection import Connection
 from azure.devops.credentials import BasicAuthentication
+from azure.devops.exceptions import AzureDevOpsAuthenticationError
+from azure.devops.exceptions import AzureDevOpsServiceError
 from azure.devops.v7_0.git import GitPullRequest
 from azure.devops.v7_0.git import GitRepository
 from azure.devops.v7_0.git.git_client import GitClient
@@ -13,6 +15,7 @@ from git.remote import PushInfo
 from git.remote import PushInfoList
 from git.exc import GitCommandError
 from git.exc import NoSuchPathError
+from msrest.exceptions import ClientRequestError
 from typing import Any
 import json
 import logging
@@ -342,39 +345,95 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
         return False
 
 
-def raise_pull_request_azure_devops(base_url: str, project: str, repo_id: str, pull_request_payload: dict[str, Any], creds: BasicAuthentication) -> GitPullRequest:
-    connection = Connection(base_url=base_url,
-                            creds=creds,
-                            user_agent="code-migration-assistant-agent")
+def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str, pull_request_payload: dict[str, Any], creds: BasicAuthentication) -> GitPullRequest:
+    """Raise a pull request in Azure DevOps.
 
-    git_client: GitClient = connection.clients.get_git_client()
+    Args:
+        base_url (str): The base URL of the Azure DevOps service.
+        project (str): The name of the project in which the repository resides.
+        repo_name (str): The name of the repository for which the pull request is raised.
+        pull_request_payload (dict[str, Any]): The payload containing the details of the pull request.
+        creds (BasicAuthentication): The authentication credentials for Azure DevOps.
 
-    _logger.info(f"Searching for '{repo_id}' in '{project}' project..")
-    target_repo: GitRepository = git_client.get_repository(project=project,
-                                                           repository_id=repo_id)
+    Returns:
+        GitPullRequest: The created pull request if successful, None otherwise.
+    """
+    try:
+        _logger.debug("Creating Connection object..")
+        connection = Connection(base_url=base_url,
+                                creds=creds,
+                                user_agent="code-migration-assistant-agent")
 
-    _logger.info(f"Found '{project}/{repo_id}'")
-    _logger.info("Raising pull request..")
-    pull_request: GitPullRequest = git_client.create_pull_request(git_pull_request_to_create=pull_request_payload,
-                                                                  repository_id=target_repo.id)
-    _logger.info(f"Pull request raised successfully with an id='{
-                 pull_request.pull_request_id}'")
-    return pull_request
+        _logger.debug("Instantiating a git client..")
+        git_client: GitClient = connection.clients.get_git_client()
+
+        _logger.info(f"Searching for '{repo_name}' in '{project}' project..")
+        target_repo: GitRepository = git_client.get_repository(project=project,
+                                                               repository_id=repo_name)
+
+        _logger.info(f"Repository '{repo_name}' found.")
+        _logger.info("Creating pull request...")
+        pull_request: GitPullRequest = git_client.create_pull_request(git_pull_request_to_create=pull_request_payload,
+                                                                      repository_id=target_repo.id)
+
+        _logger.info(
+            f"Pull request created successfully with ID '{pull_request.pull_request_id}'.")
+        return pull_request
+
+    except AzureDevOpsServiceError as azure_devops_svc_err:
+        error_msg = str(azure_devops_svc_err).strip()
+        if 'project does not exist' in error_msg:
+            _logger.error(
+                f"'{project}' project doesn't exist. Verify that the name of the project is correct and that the project exists on the specified Azure DevOps Server")
+        elif f"{repo_name} does not exist" in error_msg:
+            _logger.error(
+                f"'{repo_name}' repository does not exist or you do not have permissions for the operation you are attempting.")
+        elif 'active pull request for the source and target branch already exists' in error_msg:
+            _logger.error(
+                "An active pull request for the source and target branch already exists")
+        else:
+            _logger.error(error_msg)
+        return None
+
+    except ClientRequestError:
+        _logger.exception(
+            f"'{base_url}' Request error: Make sure to add a valid URL")
+        return None
+
+    except AzureDevOpsAuthenticationError:
+        _logger.exception(
+            "Authentication error: Make sure you set 'AZURE_DEVOPS_PAT' with valid PAT")
+        return None
+
+    except Exception as e:
+        _logger.error(
+            f"Failed to create pull request: {str(e).strip()}")
+        return None
 
 
 def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]]) -> bool:
+    """Raise a pull request based on the provided configuration.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        pull_request_config (dict[str, dict[str, Any]]): The configuration for the pull request, containing 'providerData' and 'payload'.
+
+    Returns:
+        bool: True if the pull request is successfully raised, False otherwise.
+    """
     try:
         pull_request: Union[GitPullRequest, None] = None
         scm_provider_data: dict[str, str] = pull_request_config['providerData']
-        scm_provider_type = scm_provider_data['type'].strip()
+        scm_provider_type = scm_provider_data['type'].lower().strip()
         pull_request_payload: dict[str, Any] = pull_request_config['payload']
 
-        if scm_provider_type.lower() == "azure devops":
-            _logger.info(f"'{scm_provider_type}' pull request type detected")
+        if scm_provider_type == "azure devops":
+            _logger.info("Azure DevOps pull request detected.")
             AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', None)
 
             if not AZURE_DEVOPS_PAT:
-                _logger.error("Error: Personal Access Token (PAT) not found. Please set 'AZURE_DEVOPS_PAT' environment variable with your Azure DevOps Personal Access Token (PAT) before running Code Migration Assistant")
+                _logger.error(
+                    "Personal Access Token (PAT) not found. Please set 'AZURE_DEVOPS_PAT' environment variable with your Azure DevOps Personal Access Token (PAT) before running Code Migration Assistant")
                 _logger.info("Aborting..")
                 return False
 
@@ -382,47 +441,53 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
             project = scm_provider_data['project'].strip()
             repo_name = os.path.basename(
                 os.path.normpath(repo.working_tree_dir))
+
             pull_request_payload['description'] = "\n".join(
                 pull_request_payload.get('description', []))
             pull_request_payload['sourceRefName'] = f"refs/heads/{
                 repo.active_branch.name}"
             target_ref_name: str = pull_request_payload['targetRefName']
+
             if not target_ref_name.startswith("refs/heads/"):
-                _logger.info(f"targetRefName before: {
-                             pull_request_payload['targetRefName']}")
+                _logger.debug(
+                    f"Updating targetRefName to 'refs/heads/{target_ref_name}'...")
                 pull_request_payload['targetRefName'] = f"refs/heads/{
                     target_ref_name}"
-                _logger.info(f"targetRefName after: {
-                             pull_request_payload['targetRefName']}")
+
             pull_request = raise_pull_request_azure_devops(base_url=base_url,
                                                            project=project,
-                                                           repo_id=repo_name,
+                                                           repo_name=repo_name,
                                                            pull_request_payload=pull_request_payload,
                                                            creds=BasicAuthentication('PAT', AZURE_DEVOPS_PAT))
-            if pull_request:
-                return True
+            return pull_request is not None
 
-            return False
         else:
             _logger.error(f"Unsupported pull request type: '{
                           scm_provider_type}'")
             return False
+
     except KeyError as key_err:
         missing_key = str(key_err).strip()
         path_to_key = missing_key
-        if missing_key == 'payload':
+        if missing_key in scm_provider_data:
             path_to_key = f"pullRequest.{missing_key}"
-        if missing_key == 'providerData':
-            path_to_key = f"pullRequest.{missing_key}"
-        if missing_key == 'type':
+        elif missing_key == 'type':
             path_to_key = f"pullRequest.providerData.{missing_key}"
-        if missing_key == 'baseUrl':
+        elif missing_key == 'baseUrl':
             path_to_key = f"pullRequest.providerData.{missing_key}"
-        if missing_key == 'project':
+        elif missing_key == 'project':
             path_to_key = f"pullRequest.providerData.{missing_key}"
+        elif missing_key == 'project':
+            path_to_key = f"pullRequest.providerData.{missing_key}"
+        elif missing_key == 'targetRefName':
+            path_to_key = f"pullRequest.payload.{missing_key}"
         targets_config_file_path = os.path.abspath(
             app_config.TARGETS_CONFIG_FILE)
         _logger.error(
             f"'{missing_key}' key not found. Please make sure to provide '{path_to_key}' in '{targets_config_file_path}'")
-        _logger.info("aborting..")
+        _logger.info("Aborting..")
+        return False
+
+    except Exception as e:
+        _logger.error(f"An unexpected error encountered: {str(e)}")
         return False
