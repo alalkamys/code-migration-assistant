@@ -173,7 +173,24 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bo
 
 # TODO: find a way to determine if the end result contains some errors but were skipped
 def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]] | None:
-    """Search all files in a directory (including subdirectories) for patterns and replace them, and returns the number of matching for each given pattern."""
+    """Searches all files in a directory (including subdirectories) for patterns and replaces them.
+
+    Args:
+        directory (str): The directory path to search for files.
+        patterns (dict): A dictionary where keys are patterns to search for and values are replacements.
+        excluded_files (list, optional): A list of filenames to exclude from the search. Defaults to [].
+        hidden_dirs (bool, optional): Whether to include hidden directories in the search. Defaults to False.
+
+    Returns:
+        Union[Dict[str, Dict[str, Any]], None]: A dictionary containing information about the number of matches found for each pattern.
+            The dictionary structure is as follows:
+            {
+                'pattern1': {'count': <int>, 'match': {'file1': <int>, 'file2': <int>, ...}},
+                'pattern2': {'count': <int>, 'match': {'file3': <int>, 'file4': <int>, ...}},
+                ...
+            }
+            Returns None if an error occurs during the search and replace operation.
+    """
     result = {pattern: {'count': 0, 'match': {}}
               for pattern in patterns.keys()}
     if hidden_dirs:
