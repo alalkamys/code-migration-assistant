@@ -75,24 +75,31 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
     result = []
     for repo in repos:
         try:
-            result.append(Repo(path=repo['source']) if repo['type'].strip().lower() == "local" else Repo.clone_from(
-                url=repo['source'], to_path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}"))
+            repo_type = repo['type'].strip().lower()
+            repo_name = repo['name']
+            if repo_type == 'remote':
+                _logger.info(
+                    f"'{repo_name}' is a 'Remote' repository. Cloning..")
+            elif repo_type == 'remote':
+                _logger.info(f"'{repo_name}' is a 'Local' repository. Using..")
+            result.append(Repo(path=repo['source']) if repo_type == "local" else Repo.clone_from(
+                url=repo['source'], to_path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}"))
         except GitCommandError as git_cmd_err:
             if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
                 repo_abspath = os.path.abspath(
-                    f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}")
+                    f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}")
                 _logger.info(f"'{repo_abspath}' already exists, using..")
                 result.append(
-                    Repo(path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo['name']}"))
+                    Repo(path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}"))
             else:
                 _logger.error(f"Unexpected GitCommandError: {
                               str(git_cmd_err).strip()}")
         except NoSuchPathError:
             _logger.error(f"Invalid 'Remote' repo URL '{
-                          repo['source']}' no such path. Check '{repo['name']}' source URL")
+                          repo['source']}' no such path. Check '{repo_name}' source URL")
         except Exception as e:
             _logger.error(f"Unexpected error when loading '{
-                          repo['name']}': {str(e).strip()}")
+                          repo_name}': {str(e).strip()}")
     return result
 
 
