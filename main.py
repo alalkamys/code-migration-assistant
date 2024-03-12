@@ -9,6 +9,7 @@ from utils.helpers import raise_pull_request
 from utils.helpers import search_and_replace
 
 from tabulate import tabulate
+from copy import deepcopy
 import json
 import logging.config
 import os
@@ -106,7 +107,7 @@ if __name__ == "__main__":
                 _logger.info("Exiting..")
                 sys.exit(4)
 
-            PULL_REQUEST = TARGETS_CONFIG.get('pullRequest', None)
+            PULL_REQUEST = deepcopy(TARGETS_CONFIG.get('pullRequest', None))
 
             if not PULL_REQUEST:
                 _logger.info(f"No pull request data configured for '{
