@@ -8,6 +8,7 @@ from utils.helpers import push_changes
 from utils.helpers import raise_pull_request
 from utils.helpers import search_and_replace
 
+from tabulate import tabulate
 import json
 import logging.config
 import os
@@ -124,8 +125,28 @@ if __name__ == "__main__":
                 _logger.info("Exiting..")
                 sys.exit(5)
 
-        _logger.info(f"Migration summary results: {
+        _logger.info(f"Migration summary results (JSON Format): {
             json.dumps(final_result, sort_keys=True, indent=4)}")
+
+        combined_table = []
+        for repo_name, repo_result in final_result.items():
+            for pattern, pattern_data in repo_result.items():
+                if pattern_data["count"] == 0:
+                    matched_files_text = "N/A"
+                else:
+                    matched_files_table = []
+                    for file_path, match_count in pattern_data["match"].items():
+                        matched_files_table.append([file_path, match_count])
+                    matched_files_text = tabulate(
+                        matched_files_table, headers=["Matched File", "Match Count"], tablefmt="grid")
+                row = [repo_name, pattern,
+                       pattern_data["count"], matched_files_text]
+                combined_table.append(row)
+
+        headers = ["Repository", "Pattern", "Count", "Matched Files"]
+        _logger.info("Migration summary results: (Table Format)")
+        _logger.info(
+            f"\n{tabulate(combined_table, headers=headers, tablefmt="grid")}")
     else:
         _logger.info("No targets to migrate detected or replacements found")
         _logger.info("Nothing to do")
