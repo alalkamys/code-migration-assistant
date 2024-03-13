@@ -1,7 +1,6 @@
 from config import app_config
 from config import RemoteProgressReporter
 
-from typing import Union
 from azure.devops.connection import Connection
 from azure.devops.credentials import BasicAuthentication
 from azure.devops.exceptions import AzureDevOpsAuthenticationError
@@ -17,6 +16,7 @@ from git.exc import GitCommandError
 from git.exc import NoSuchPathError
 from msrest.exceptions import ClientRequestError
 from typing import Any
+from typing import Union
 import json
 import logging
 import os
@@ -471,11 +471,10 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
     """
     try:
         pull_request: Union[GitPullRequest, None] = None
-        scm_provider_data: dict[str, str] = pull_request_config['providerData']
+        scm_provider_data: dict[str, str] = repo.scm_provider
         scm_provider_type = scm_provider_data['type'].lower().strip()
-        pull_request_payload: dict[str, Any] = pull_request_config['payload']
 
-        if scm_provider_type == "azure devops":
+        if scm_provider_type == "azuredevops":
             _logger.info("Azure DevOps pull request detected.")
             AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', None)
 
@@ -485,10 +484,13 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
                 _logger.info("Aborting..")
                 return False
 
-            base_url = scm_provider_data['baseUrl'].strip()
+            base_url = scm_provider_data['base_url'].strip()
             project = scm_provider_data['project'].strip()
             repo_name = os.path.basename(
                 os.path.normpath(repo.working_tree_dir))
+
+            pull_request_payload: dict[str,
+                                       Any] = pull_request_config[scm_provider_type]
 
             pull_request_payload['description'] = "\n".join(
                 pull_request_payload.get('description', []))
@@ -517,18 +519,16 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
     except KeyError as key_err:
         missing_key = str(key_err).strip()
         path_to_key = missing_key
-        if missing_key in scm_provider_data:
-            path_to_key = f"pullRequest.{missing_key}"
-        elif missing_key == 'type':
-            path_to_key = f"pullRequest.providerData.{missing_key}"
+        if missing_key == 'type':
+            path_to_key = f"targetRepos[].scmProvider.{missing_key}"
         elif missing_key == 'baseUrl':
-            path_to_key = f"pullRequest.providerData.{missing_key}"
+            path_to_key = f"pullRequest.providerData.base_url"
         elif missing_key == 'project':
             path_to_key = f"pullRequest.providerData.{missing_key}"
-        elif missing_key == 'project':
-            path_to_key = f"pullRequest.providerData.{missing_key}"
+        elif missing_key == scm_provider_type:
+            path_to_key = f"pullRequest.{scm_provider_type}"
         elif missing_key == 'targetRefName':
-            path_to_key = f"pullRequest.payload.{missing_key}"
+            path_to_key = f"pullRequest.{scm_provider_type}.{missing_key}"
         targets_config_file_path = os.path.abspath(
             app_config.TARGETS_CONFIG_FILE)
         _logger.error(

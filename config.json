@@ -3,7 +3,22 @@
         {
             "name": "test-repo",
             "source": "remote-repos/test-repo",
-            "type": "Local"
+            "type": "Local",
+            "scmProvider": {
+                "type": "azuredevops",
+                "baseUrl": "https://dev.azure.com/TestOrg/",
+                "project": "Test"
+            }
+        },
+        {
+            "name": "test-repo-2",
+            "source": "https://TestOrg@dev.azure.com/TestOrg/Test2/_git/test-repo-2",
+            "type": "Remote",
+            "scmProvider": {
+                "type": "azuredevops",
+                "baseUrl": "https://dev.azure.com/TestOrg/",
+                "project": "Test2"
+            }
         }
     ],
     "targetBranch": {
@@ -20,12 +35,7 @@
         ]
     },
     "pullRequest": {
-        "providerData": {
-            "type": "Azure DevOps",
-            "baseUrl": "https://dev.azure.com/TestOrg/",
-            "project": "Test"
-        },
-        "payload": {
+        "azuredevops": {
             "targetRefName": "main",
             "title": "Feat: Code Migration",
             "description": [
