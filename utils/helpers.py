@@ -410,7 +410,7 @@ def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str,
         _logger.debug("Creating Connection object..")
         connection = Connection(base_url=base_url,
                                 creds=creds,
-                                user_agent="code-migration-assistant-agent")
+                                user_agent="alalkamys/code-migration-assistant")
 
         _logger.debug("Instantiating a git client..")
         git_client: GitClient = connection.clients.get_git_client()
