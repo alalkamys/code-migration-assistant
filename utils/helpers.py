@@ -67,10 +67,10 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
     """Load target repositories.
 
     Args:
-        repos (List[dict]): A list of dictionaries containing repository information.
+        repos (list[dict]): A list of dictionaries containing repository information.
 
     Returns:
-        List[Repo]: A list of gitpython Repo objects representing the loaded repositories.
+        list[Repo]: A list of GitPython Repo objects representing the loaded repositories.
     """
     result = []
     for repo in repos:
@@ -84,25 +84,26 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
             elif repo_type == 'remote':
                 _logger.info(
                     f"'{repo_name}' is a 'Remote' repository. Cloning..")
-                repo_obj = Repo.clone_from(url=repo['source'], to_path=f"{
-                                           app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}")
+                repo_obj = Repo.clone_from(url=repo['source'], to_path=os.path.join(
+                    app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
             repo_obj.scm_provider = scm_provider_data
             result.append(repo_obj)
         except GitCommandError as git_cmd_err:
             if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
-                repo_abspath = os.path.abspath(
-                    f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}")
+                repo_abspath = os.path.abspath(os.path.join(
+                    app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
                 _logger.info(f"'{repo_abspath}' already exists, using..")
-                repo_obj = Repo(
-                    path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}")
+                repo_obj = Repo(path=repo_abspath)
                 repo_obj.scm_provider = scm_provider_data
                 result.append(repo_obj)
             else:
                 _logger.error(f"Unexpected GitCommandError: {
                               str(git_cmd_err).strip()}")
         except NoSuchPathError:
-            _logger.error(f"Invalid 'Remote' repo URL '{
-                          repo['source']}' no such path. Check '{repo_name}' source URL")
+            repo_abspath = os.path.abspath(os.path.join(
+                app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
+            _logger.error(f"Invalid 'Local' repo source path '{
+                repo_abspath}': No such path. Check '{repo_name}' source path")
         except Exception as e:
             _logger.error(f"Unexpected error when loading '{
                           repo_name}': {str(e).strip()}")
