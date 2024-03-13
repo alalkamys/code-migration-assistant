@@ -86,7 +86,15 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
                     f"'{repo_name}' is a 'Remote' repository. Cloning..")
                 repo_obj = Repo.clone_from(url=repo['source'], to_path=os.path.join(
                     app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
-            repo_obj.scm_provider = scm_provider_data
+            scm_provider_type = scm_provider_data['type'].strip(
+            ).lower().replace(' ', '')
+            if scm_provider_type == "azuredevops":
+                _logger.debug(f"'{scm_provider_type}' SCM provider detected")
+                repo_obj.scm_provider = {
+                    'type': scm_provider_type,
+                    'base_url': scm_provider_data['baseUrl'],
+                    'project': scm_provider_data['project']
+                }
             result.append(repo_obj)
         except GitCommandError as git_cmd_err:
             if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
@@ -94,7 +102,16 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
                     app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
                 _logger.info(f"'{repo_abspath}' already exists, using..")
                 repo_obj = Repo(path=repo_abspath)
-                repo_obj.scm_provider = scm_provider_data
+                scm_provider_type = scm_provider_data['type'].strip(
+                ).lower().replace(' ', '')
+                if scm_provider_type == "azuredevops":
+                    _logger.debug(
+                        f"'{scm_provider_type}' SCM provider detected")
+                    repo_obj.scm_provider = {
+                        'type': scm_provider_type,
+                        'base_url': scm_provider_data['baseUrl'],
+                        'project': scm_provider_data['project']
+                    }
                 result.append(repo_obj)
             else:
                 _logger.error(f"Unexpected GitCommandError: {
