@@ -28,7 +28,9 @@ if __name__ == "__main__":
     FILES_TO_EXCLUDE = TARGETS_CONFIG.get('filesToExclude', [])
 
     if len(TARGET_REPOS) > 0 and len(REPLACEMENTS) > 0:
-        _logger.info(f"{len(TARGET_REPOS)} target repo(s) found")
+        _logger.info(f"Loaded '{len(TARGET_REPOS)}' repositories out of '{
+            len(TARGETS_CONFIG['targetRepos'])}' provided repositories")
+        _logger.info(f"'{len(TARGET_REPOS)}' target repo(s) found")
         _logger.info("Initiating code migration assistant program..")
         final_result = {}
         for repo in TARGET_REPOS:
