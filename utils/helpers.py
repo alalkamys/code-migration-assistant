@@ -77,20 +77,26 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
         try:
             repo_type = repo['type'].strip().lower()
             repo_name = repo['name']
-            if repo_type == 'remote':
+            scm_provider_data: dict[str, str] = repo['scmProvider']
+            if repo_type == 'local':
+                _logger.info(f"'{repo_name}' is a 'Local' repository. Using..")
+                repo_obj = Repo(path=repo['source'])
+            elif repo_type == 'remote':
                 _logger.info(
                     f"'{repo_name}' is a 'Remote' repository. Cloning..")
-            elif repo_type == 'remote':
-                _logger.info(f"'{repo_name}' is a 'Local' repository. Using..")
-            result.append(Repo(path=repo['source']) if repo_type == "local" else Repo.clone_from(
-                url=repo['source'], to_path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}"))
+                repo_obj = Repo.clone_from(url=repo['source'], to_path=f"{
+                                           app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}")
+            repo_obj.scm_provider = scm_provider_data
+            result.append(repo_obj)
         except GitCommandError as git_cmd_err:
             if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
                 repo_abspath = os.path.abspath(
                     f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}")
                 _logger.info(f"'{repo_abspath}' already exists, using..")
-                result.append(
-                    Repo(path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}"))
+                repo_obj = Repo(
+                    path=f"{app_config.REMOTE_TARGETS_CLONING_PATH}/{repo_name}")
+                repo_obj.scm_provider = scm_provider_data
+                result.append(repo_obj)
             else:
                 _logger.error(f"Unexpected GitCommandError: {
                               str(git_cmd_err).strip()}")
