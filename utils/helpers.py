@@ -644,7 +644,7 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
             return False
 
     except KeyError as key_err:
-        missing_key = str(key_err).strip()
+        missing_key = str(key_err).strip().replace("'", "")
         path_to_key = missing_key
         if missing_key == 'type':
             path_to_key = f"targetRepos[].scmProvider.{missing_key}"
