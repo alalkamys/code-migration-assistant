@@ -528,9 +528,14 @@ def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_p
         if '422' in error_msg and 'pull request already exists' in error_msg:
             base = pull_request_payload['base']
             head = pull_request_payload['head']
-            owner_or_org = 
-            pulls = repo.get_pulls(state='open', base='main', head='alalkamys:test/code-migration-2')
-            _logger.error(f"A pull requests already exists for '{repo_full_name}' repository for base:head '{
+            owner_or_org = pull_request_payload['owner_or_org']
+            state = 'open'
+            pulls = repo.get_pulls(state=state, base=base, head=f"{
+                                   owner_or_org}:{head}")
+            _logger.debug(f"'{repo_full_name}' already has '{
+                          pulls.totalCount}' '{state}' pulls")
+            _logger.debug(f"pulls numbers: {[pull.number for pull in pulls]}")
+            _logger.error(f"A pull request with ID '{pulls[0].number}' already exists for '{repo_full_name}' repository for base:head '{
                           pull_request_payload["base"]}:{pull_request_payload["head"]}'")
         elif '422' in error_msg and '"field": "base"' in error_msg:
             _logger.error(f"Invalid base ref: '{
