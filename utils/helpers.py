@@ -446,6 +446,7 @@ def get_pull_requests_azure_devops(
         source_ref_name (str): The source ref name.
         target_ref_name (str): The target ref name.
         creds (BasicAuthentication): The basic authentication credentials.
+        user_agent (str): The user agent for making HTTP requests.
         status (str, optional): The pull request status. Default is 'active'.
 
     Returns:
@@ -499,6 +500,7 @@ def raise_pull_request_azure_devops(
         repo_name (str): The name of the repository for which the pull request is raised.
         pull_request_payload (dict[str, Any]): The payload containing the details of the pull request.
         creds (BasicAuthentication): The authentication credentials for Azure DevOps.
+        user_agent (str): The user agent for making HTTP requests.
 
     Returns:
         GitPullRequest: The created pull request if successful, None otherwise.
@@ -573,10 +575,11 @@ def get_pull_requests_github(
         base (str): The base branch of the pull request.
         head (str): The head branch of the pull request.
         auth (Auth): Authentication credentials for GitHub.
+        user_agent (str): The user agent for making HTTP requests.
         state (str, optional): The state of the pull request. Defaults to "open".
 
     Returns:
-        PaginatedList[PaginatedList]: A list of pull request objects, or None if unsuccessful.
+        PaginatedList[PullRequest] | None: A list of pull request objects, or None if unsuccessful.
     """
     try:
         _logger.debug("Instantiating a GitHub client..")
@@ -647,10 +650,11 @@ def raise_pull_request_github(
         base_url (str): The base URL of the GitHub instance.
         repo_full_name (str): The full name of the repository (e.g., 'owner/repo').
         pull_request_payload (dict): The payload containing pull request details.
+        user_agent (str): The user agent for making HTTP requests.
         auth (Auth): Authentication credentials for GitHub.
 
     Returns:
-        Optional[PullRequest]: The created pull request object, or None if unsuccessful.
+        PullRequest | None: The created pull request object, or None if unsuccessful.
     """
     try:
         pull_request: Union[PullRequest, None] = None

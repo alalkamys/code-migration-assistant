@@ -17,6 +17,7 @@ class AppConfig:
         AZURE_DEVOPS_PAT (str): The Personal Access Token (PAT) for Azure DevOps. Defaults to None.
         GITHUB_TOKEN (str): The Personal Access Token (PAT) for GitHub. Defaults to None.
         ACTOR (dict): A dictionary containing the username and email of the application's agent.
+        USER_AGENT (str): The user agent for making HTTP requests. Defaults to "alalkamys/code-migration-assistant".
         LOGGING_CONFIG (dict): Configuration settings for logging.
     """
     APP_NAME = os.getenv('CODE_MIGRATION_ASSISTANT_APP_NAME',
