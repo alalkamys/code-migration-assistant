@@ -540,6 +540,8 @@ def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_p
         elif '422' in error_msg and '"field": "base"' in error_msg:
             _logger.error(f"Invalid base ref: '{
                           pull_request_payload["base"]}'. Make sure to include a valid 'base' ref in pullRequest.github.base")
+        elif '403' in error_msg and "Resource protected by organization SAML enforcement" in error_msg:
+            _logger.error(f"Forbidden: '{repo_full_name}' Resource protected by organization SAML enforcement. You must grant your Personal Access token access to an organization within this enterprise. You can check the documentation at 'https://docs.github.com/articles/authenticating-to-a-github-organization-with-saml-single-sign-on/' for more information")
         else:
             _logger.error(f"Unexpected GithubException: {error_msg}")
 
