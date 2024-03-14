@@ -109,7 +109,7 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
                 repo_obj.scm_provider = {
                     'type': scm_provider_type,
                     'domain': scm_provider_data['domain'],
-                    'owner': scm_provider_data['owner'].strip()
+                    'owner_or_org': scm_provider_data['ownerOrOrg'].strip()
                 }
             result.append(repo_obj)
         except GitCommandError as git_cmd_err:
@@ -134,7 +134,7 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
                     repo_obj.scm_provider = {
                         'type': scm_provider_type,
                         'domain': scm_provider_data['domain'],
-                        'owner': scm_provider_data['owner'].strip()
+                        'owner_or_org': scm_provider_data['ownerOrOrg'].strip()
                     }
                 result.append(repo_obj)
             else:
@@ -526,6 +526,10 @@ def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_p
     except GithubException as github_exc:
         error_msg = str(github_exc).strip()
         if '422' in error_msg and 'pull request already exists' in error_msg:
+            base = pull_request_payload['base']
+            head = pull_request_payload['head']
+            owner_or_org = 
+            pulls = repo.get_pulls(state='open', base='main', head='alalkamys:test/code-migration-2')
             _logger.error(f"A pull requests already exists for '{repo_full_name}' repository for base:head '{
                           pull_request_payload["base"]}:{pull_request_payload["head"]}'")
         elif '422' in error_msg and '"field": "base"' in error_msg:
@@ -604,8 +608,8 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
                 domain + "/api/v3"
             repo_name = os.path.basename(
                 os.path.normpath(repo.working_tree_dir))
-            owner = scm_provider_data['owner'].strip()
-            repo_full_name = f"{owner}/{repo_name}"
+            owner_or_org = scm_provider_data['owner_or_org'].strip()
+            repo_full_name = f"{owner_or_org}/{repo_name}"
 
             pull_request_payload: dict[str,
                                        Any] = pull_request_config[scm_provider_type]

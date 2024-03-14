@@ -27,7 +27,7 @@
             "scmProvider": {
                 "type": "github",
                 "domain": "github.com",
-                "owner": "alalkamys"
+                "ownerOrOrg": "alalkamys"
             }
         }        
     ],
