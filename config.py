@@ -39,6 +39,9 @@ class AppConfig:
         'email': 'code_migration_assistant_agent@gmail.com'
     }
 
+    USER_AGENT = os.getenv(
+        'CODE_MIGRATION_ASSISTANT_USER_AGENT', "alalkamys/code-migration-assistant")
+
     LOGGING_CONFIG = {
         'version': 1,
         'disable_existing_loggers': True,

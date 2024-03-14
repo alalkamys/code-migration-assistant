@@ -434,6 +434,7 @@ def get_pull_requests_azure_devops(
     source_ref_name: str,
     target_ref_name: str,
     creds: BasicAuthentication,
+    user_agent: str,
     status: str = 'active'
 ) -> Union[List[GitPullRequest], None]:
     """Get pull requests in Azure Repos based on source and target ref names.
@@ -454,7 +455,7 @@ def get_pull_requests_azure_devops(
         _logger.debug("Instantiating Azure DevOps connection...")
         connection = Connection(base_url=base_url,
                                 creds=creds,
-                                user_agent="alalkamys/code-migration-assistant")
+                                user_agent=user_agent)
 
         _logger.debug("Instantiating a git client..")
         git_client: GitClient = connection.clients.get_git_client()
@@ -482,7 +483,14 @@ def get_pull_requests_azure_devops(
         return None
 
 
-def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str, pull_request_payload: dict[str, Any], creds: BasicAuthentication) -> GitPullRequest | None:
+def raise_pull_request_azure_devops(
+    base_url: str,
+    project: str,
+    repo_name: str,
+    pull_request_payload: dict[str, Any],
+    user_agent: str,
+    creds: BasicAuthentication
+) -> GitPullRequest | None:
     """Raise a pull request in Azure DevOps.
 
     Args:
@@ -499,7 +507,7 @@ def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str,
         _logger.debug("Creating Connection object..")
         connection = Connection(base_url=base_url,
                                 creds=creds,
-                                user_agent="alalkamys/code-migration-assistant")
+                                user_agent=user_agent)
 
         _logger.debug("Instantiating a git client..")
         git_client: GitClient = connection.clients.get_git_client()
@@ -554,6 +562,7 @@ def get_pull_requests_github(
     base: str,
     head: str,
     auth: Auth,
+    user_agent: str,
     state: str = "open"
 ) -> PaginatedList[PullRequest] | None:
     """Retrieve pull requests from a GitHub repository.
@@ -574,7 +583,7 @@ def get_pull_requests_github(
         github = Github(
             base_url=base_url,
             auth=auth,
-            user_agent="alalkamys/code-migration-assistant"
+            user_agent=user_agent
         )
 
         _logger.info(f"Searching for repository '{repo_full_name}'..")
@@ -625,7 +634,13 @@ def get_pull_requests_github(
     return None
 
 
-def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_payload: dict[str, Any], auth: Auth) -> PullRequest:
+def raise_pull_request_github(
+    base_url: str,
+    repo_full_name: str,
+    pull_request_payload: dict[str, Any],
+    user_agent: str,
+    auth: Auth
+) -> PullRequest:
     """Raise a pull request on GitHub.
 
     Args:
@@ -643,7 +658,7 @@ def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_p
         _logger.debug("Instantiating a github client..")
         github = Github(base_url=base_url,
                         auth=auth,
-                        user_agent="alalkamys/code-migration-assistant")
+                        user_agent=user_agent)
 
         _logger.info(f"Searching for '{repo_full_name}'..")
         repo: Repository = github.get_repo(full_name_or_id=repo_full_name)
@@ -750,6 +765,7 @@ def is_open_pull_requests(repo: Repo, pull_request_config: dict[str, dict[str, A
                                                            source_ref_name=source_ref_name,
                                                            target_ref_name=target_ref_name,
                                                            status="active",
+                                                           user_agent=app_config.USER_AGENT,
                                                            creds=BasicAuthentication('PAT', AZURE_DEVOPS_PAT))
             if pull_requests is not None:
                 is_open_pr = len(pull_requests) > 0
@@ -797,6 +813,7 @@ def is_open_pull_requests(repo: Repo, pull_request_config: dict[str, dict[str, A
                                                                     base=base_ref,
                                                                     head=head_ref,
                                                                     state="open",
+                                                                    user_agent=app_config.USER_AGENT,
                                                                     auth=auth.Token(GITHUB_TOKEN))
 
             if pull_requests is not None:
@@ -902,6 +919,7 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
                                                            project=project,
                                                            repo_name=repo_name,
                                                            pull_request_payload=pull_request_payload,
+                                                           user_agent=app_config.USER_AGENT,
                                                            creds=BasicAuthentication('PAT', AZURE_DEVOPS_PAT))
             return pull_request is not None
 
@@ -941,6 +959,7 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
             pull_request = raise_pull_request_github(base_url=base_url,
                                                      repo_full_name=repo_full_name,
                                                      pull_request_payload=pull_request_payload,
+                                                     user_agent=app_config.USER_AGENT,
                                                      auth=auth.Token(GITHUB_TOKEN))
 
             return pull_request is not None
