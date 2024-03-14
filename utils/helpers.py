@@ -470,7 +470,7 @@ def get_pull_requests_azure_devops(
         )
 
         _logger.info(f"Found '{len(pull_requests)
-                               }' open pull requests matching the criteria")
+                               }' {status} pull requests matching the criteria")
         _logger.debug(f"Pull requests IDs: {
                       [pull_request.pull_request_id for pull_request in pull_requests]}")
         return pull_requests
@@ -588,7 +588,7 @@ def get_pull_requests_github(
                                head=f"{owner_or_org}:{head}")
 
         _logger.info(
-            f"Found '{pulls.totalCount}' open pull requests matching the criteria")
+            f"Found '{pulls.totalCount}' {state} pull requests matching the criteria")
 
         _logger.debug(f"Pull Requests IDs: {[pull.number for pull in pulls]}")
 
