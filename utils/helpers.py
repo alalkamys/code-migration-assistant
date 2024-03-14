@@ -484,6 +484,17 @@ def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str,
 
 
 def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_payload: dict[str, Any], auth: Auth) -> PullRequest:
+    """Raise a pull request on GitHub.
+
+    Args:
+        base_url (str): The base URL of the GitHub instance.
+        repo_full_name (str): The full name of the repository (e.g., 'owner/repo').
+        pull_request_payload (dict): The payload containing pull request details.
+        auth (Auth): Authentication credentials for GitHub.
+
+    Returns:
+        Optional[PullRequest]: The created pull request object, or None if unsuccessful.
+    """
     try:
         pull_request: Union[PullRequest, None] = None
 
@@ -551,12 +562,26 @@ def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_p
 def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]]) -> bool:
     """Raise a pull request based on the provided configuration.
 
+    This function raises a pull request in the specified repository based on the provided configuration.
+    It supports different source control management providers such as Azure DevOps and GitHub.
+
     Args:
         repo (Repo): The GitPython Repo object representing the local repository.
         pull_request_config (dict[str, dict[str, Any]]): The configuration for the pull request, containing 'providerData' and 'payload'.
+            The 'providerData' key holds information about the source control management provider,
+            and the 'payload' key contains data specific to the pull request.
 
     Returns:
         bool: True if the pull request is successfully raised, False otherwise.
+
+    Raises:
+        KeyError: If required keys are missing in the pull_request_config dictionary.
+        Exception: If an unexpected error occurs during pull request creation.
+
+    Note:
+        The function handles pull request creation for different source control management providers.
+        Ensure that the pull_request_config dictionary contains the necessary information for the desired provider.
+        This function logs error messages using the configured logger.
     """
     try:
         pull_request: Union[GitPullRequest, PullRequest, None] = None
