@@ -528,7 +528,7 @@ def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_p
         if '422' in error_msg and 'pull request already exists' in error_msg:
             base = pull_request_payload['base']
             head = pull_request_payload['head']
-            owner_or_org = pull_request_payload['owner_or_org']
+            owner_or_org = repo_full_name.split('/')[0]
             state = 'open'
             pulls = repo.get_pulls(state=state, base=base, head=f"{
                                    owner_or_org}:{head}")
