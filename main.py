@@ -1,9 +1,13 @@
 from config import app_config
 from utils.helpers import checkout_branch
 from utils.helpers import commit_changes
+from utils.helpers import get_files_count
+from utils.helpers import has_tracking_branch
 from utils.helpers import identity_setup
+from utils.helpers import is_open_pull_requests
 from utils.helpers import load_targets_config
 from utils.helpers import load_target_repos
+from utils.helpers import needs_push
 from utils.helpers import push_changes
 from utils.helpers import raise_pull_request
 from utils.helpers import search_and_replace
@@ -83,51 +87,124 @@ if __name__ == "__main__":
 
             final_result[repo_name] = result
 
-            # TODO: add a scenario for handling match_count_total == 0 and there are already staged/committed changes, they should be pushed and a PR is raised for them
-            if match_count_total == 0:
-                if repo != TARGET_REPOS[-1]:
-                    _logger.info("Skipping to the next migration..")
-                continue
-
-            COMMIT_MESSAGE = TARGETS_CONFIG.get('commitMessage', None)
-            COMMIT_TITLE = COMMIT_MESSAGE.get(
-                'title', "feat: code migration") if COMMIT_MESSAGE else "feat: code migration"
-            COMMIT_DESCRIPTION = COMMIT_MESSAGE.get(
-                'description', None) if COMMIT_MESSAGE else None
-
-            commit_changes(repo=repo, title=COMMIT_TITLE, description="\n".join(
-                COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, auto_stage=True)
-
-            changes_pushed = push_changes(repo=repo)
-
-            # TODO: add a scenario where changes are pushed but a pull request was not created (maybe because user forgot to set the env vars), code-migration-assistant should query if there is a pull request or not
-            if not changes_pushed:
-                _logger.error(
-                    f"'{repo_name}' remote push process failed. Review the logs for more details")
-                if repo != TARGET_REPOS[-1]:
-                    _logger.info("Skipping to the next migration..")
-                    continue
-                _logger.info("Exiting..")
-                sys.exit(4)
-
             PULL_REQUEST = deepcopy(TARGETS_CONFIG.get('pullRequest', None))
+
+            commit = True
+            push = True
+            create_pull_request = True
+
+            if match_count_total == 0:
+                _logger.info(
+                    "Checking if there are modified/staged files by a previous run..")
+                modified_files_count = get_files_count(
+                    repo=repo, file_status="modified")
+                staged_files_count = get_files_count(
+                    repo=repo, file_status="staged")
+                _logger.debug(f"Modified Files Count: '{
+                              modified_files_count}'")
+                _logger.debug(f"Staged Files Count: '{staged_files_count}'")
+                if modified_files_count + staged_files_count > 0:
+                    _logger.info("Modified/staged files detected")
+                    _logger.info("Proceeding with committing changes..")
+                else:
+                    _logger.info("All files are tracked")
+                    commit = False
+                    _logger.info(
+                        "Checking if current branch has an upstream branch..")
+                    if has_tracking_branch(repo.active_branch):
+                        _logger.info(
+                            f"'{repo.active_branch.name}' has an upstream branch")
+                        _logger.info(
+                            "Checking if upstream branch is up-to-date with the current branch..")
+                        if needs_push(repo=repo):
+                            _logger.info(
+                                "Upstream branch is outdated. Requires pushing")
+                            _logger.info("Proceeding with pushing..")
+                        else:
+                            _logger.info("Upstream is up-to-date")
+                            push = False
+                            if PULL_REQUEST:
+                                _logger.info(
+                                    "Checking if there is an open pull request..")
+                                open_pull_request, error = is_open_pull_requests(
+                                    repo=repo, pull_request_config=PULL_REQUEST)
+
+                                if error:
+                                    _logger.error(f"Querying '{
+                                                  repo_name}' open requests failed. Review the logs for more details")
+                                    if repo != TARGET_REPOS[-1]:
+                                        _logger.info(
+                                            "Skipping to the next migration..")
+                                        continue
+                                    _logger.info("Exiting..")
+                                    sys.exit(6)
+
+                                if open_pull_request:
+                                    _logger.info(
+                                        f"'{repo_name}' has an open pull request")
+                                    create_pull_request = False
+                                else:
+                                    _logger.info(
+                                        f"'{repo_name}' doesn't have an open pull request")
+                                    _logger.info(
+                                        "Proceeding with raising pull request..")
+                                    if repo != TARGET_REPOS[-1]:
+                                        _logger.info(
+                                            "Skipping to the next migration..")
+                                    continue
+
+                            else:
+                                if repo != TARGET_REPOS[-1]:
+                                    _logger.info(
+                                        "Skipping to the next migration..")
+                                continue
+                    else:
+                        _logger.info(
+                            f"'{repo.active_branch}' doesn't have an upstream branch")
+                        if repo != TARGET_REPOS[-1]:
+                            _logger.info(
+                                "Skipping to the next migration..")
+                        continue
+
+            if commit:
+                COMMIT_MESSAGE = TARGETS_CONFIG.get('commitMessage', None)
+                COMMIT_TITLE = COMMIT_MESSAGE.get(
+                    'title', "feat: code migration") if COMMIT_MESSAGE else "feat: code migration"
+                COMMIT_DESCRIPTION = COMMIT_MESSAGE.get(
+                    'description', None) if COMMIT_MESSAGE else None
+
+                commit_changes(repo=repo, title=COMMIT_TITLE, description="\n".join(
+                    COMMIT_DESCRIPTION) if COMMIT_DESCRIPTION else COMMIT_DESCRIPTION, auto_stage=True)
+
+            if push:
+                changes_pushed = push_changes(repo=repo)
+
+                if not changes_pushed:
+                    _logger.error(
+                        f"'{repo_name}' remote push process failed. Review the logs for more details")
+                    if repo != TARGET_REPOS[-1]:
+                        _logger.info("Skipping to the next migration..")
+                        continue
+                    _logger.info("Exiting..")
+                    sys.exit(4)
 
             if not PULL_REQUEST:
                 _logger.info(f"No pull request data configured for '{
                              repo_name}'. Skipping..")
                 continue
 
-            pull_request_raised = raise_pull_request(
-                repo=repo, pull_request_config=PULL_REQUEST)
+            if create_pull_request:
+                pull_request_raised = raise_pull_request(
+                    repo=repo, pull_request_config=PULL_REQUEST)
 
-            if not pull_request_raised:
-                _logger.error(
-                    f"'{repo_name}' pull request raising failed. Review the logs for more details")
-                if repo != TARGET_REPOS[-1]:
-                    _logger.info("Skipping to the next migration..")
-                    continue
-                _logger.info("Exiting..")
-                sys.exit(5)
+                if not pull_request_raised:
+                    _logger.error(
+                        f"'{repo_name}' pull request raising failed. Review the logs for more details")
+                    if repo != TARGET_REPOS[-1]:
+                        _logger.info("Skipping to the next migration..")
+                        continue
+                    _logger.info("Exiting..")
+                    sys.exit(5)
 
         _logger.info(f"Migration summary results (JSON Format): {
             json.dumps(final_result, sort_keys=True, indent=4)}")
