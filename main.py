@@ -100,6 +100,7 @@ if __name__ == "__main__":
 
             changes_pushed = push_changes(repo=repo)
 
+            # TODO: add a scenario where changes are pushed but a pull request was not created (maybe because user forgot to set the env vars), code-migration-assistant should query if there is a pull request or not
             if not changes_pushed:
                 _logger.error(
                     f"'{repo_name}' remote push process failed. Review the logs for more details")
