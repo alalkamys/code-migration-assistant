@@ -1,3 +1,5 @@
+from logging import LogRecord
+
 import logging
 
 
@@ -21,11 +23,11 @@ class SingleLevelFilter(logging.Filter):
         same self.passlevel.
     """
 
-    def __init__(self, passlevel, reject):
+    def __init__(self, passlevel: int, reject: bool):
         self.passlevel = passlevel
         self.reject = reject
 
-    def filter(self, record):
+    def filter(self, record: LogRecord):
         """Filters incoming logging record.
 
         Returns:
@@ -55,10 +57,10 @@ class MaxLevelFilter(logging.Filter):
         compares incoming logging records level no and accept it if record.levelno < self.maxlevel.
     """
 
-    def __init__(self, maxlevel):
+    def __init__(self, maxlevel: int):
         self.maxlevel = maxlevel
 
-    def filter(self, record):
+    def filter(self, record: LogRecord):
         """Filters incoming logging record.
 
         Returns:

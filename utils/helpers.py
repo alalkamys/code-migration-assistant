@@ -590,7 +590,7 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
 
         if scm_provider_type == "azuredevops":
             _logger.info("Azure DevOps pull request detected.")
-            AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', None)
+            AZURE_DEVOPS_PAT = app_config.AZURE_DEVOPS_PAT
 
             if not AZURE_DEVOPS_PAT:
                 _logger.error(
@@ -627,7 +627,7 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
 
         elif scm_provider_type == "github":
             _logger.info("GitHub pull request detected.")
-            GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', None)
+            GITHUB_TOKEN = app_config.GITHUB_TOKEN
 
             if not GITHUB_TOKEN:
                 _logger.error(

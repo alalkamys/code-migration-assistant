@@ -18,6 +18,10 @@ class AppConfig:
     REMOTE_TARGETS_CLONING_PATH = os.getenv(
         'CODE_MIGRATION_ASSISTANT_REMOTE_TARGETS_CLONING_PATH', "./remote-targets")
 
+    AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', None)
+
+    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', None)
+
     ACTOR = {
         'username': "Code Migration Assistant Agent",
         'email': 'code_migration_assistant_agent@gmail.com'
