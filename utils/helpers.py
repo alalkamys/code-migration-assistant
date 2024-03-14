@@ -452,7 +452,9 @@ def get_pull_requests_azure_devops(
     """
     try:
         _logger.debug("Instantiating Azure DevOps connection...")
-        connection = Connection(base_url=base_url, creds=creds)
+        connection = Connection(base_url=base_url,
+                                creds=creds,
+                                user_agent="alalkamys/code-migration-assistant")
 
         _logger.debug("Instantiating a git client..")
         git_client: GitClient = connection.clients.get_git_client()
