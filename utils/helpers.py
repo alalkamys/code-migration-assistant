@@ -14,6 +14,15 @@ from git.remote import PushInfo
 from git.remote import PushInfoList
 from git.exc import GitCommandError
 from git.exc import NoSuchPathError
+from github import Auth as auth
+from github import Github
+from github.Auth import Auth
+from github.GithubException import BadCredentialsException
+from github.GithubException import GithubException
+from github.GithubException import UnknownObjectException
+from github.GithubObject import _NotSetType as NotSetType
+from github.PullRequest import PullRequest
+from github.Repository import Repository
 from msrest.exceptions import ClientRequestError
 from typing import Any
 from typing import Union
@@ -95,6 +104,13 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
                     'base_url': scm_provider_data['baseUrl'],
                     'project': scm_provider_data['project']
                 }
+            elif scm_provider_type == "github":
+                _logger.debug(f"'{scm_provider_type}' SCM provider detected")
+                repo_obj.scm_provider = {
+                    'type': scm_provider_type,
+                    'domain': scm_provider_data['domain'],
+                    'owner': scm_provider_data['owner'].strip()
+                }
             result.append(repo_obj)
         except GitCommandError as git_cmd_err:
             if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
@@ -111,6 +127,14 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
                         'type': scm_provider_type,
                         'base_url': scm_provider_data['baseUrl'],
                         'project': scm_provider_data['project']
+                    }
+                elif scm_provider_type == "github":
+                    _logger.debug(
+                        f"'{scm_provider_type}' SCM provider detected")
+                    repo_obj.scm_provider = {
+                        'type': scm_provider_type,
+                        'domain': scm_provider_data['domain'],
+                        'owner': scm_provider_data['owner'].strip()
                     }
                 result.append(repo_obj)
             else:
@@ -393,7 +417,7 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
         return False
 
 
-def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str, pull_request_payload: dict[str, Any], creds: BasicAuthentication) -> GitPullRequest:
+def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str, pull_request_payload: dict[str, Any], creds: BasicAuthentication) -> GitPullRequest | None:
     """Raise a pull request in Azure DevOps.
 
     Args:
@@ -459,6 +483,60 @@ def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str,
         return None
 
 
+def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_payload: dict[str, Any], auth: Auth) -> PullRequest:
+    try:
+        pull_request: Union[PullRequest, None] = None
+
+        _logger.debug("Instantiating a github client..")
+        github = Github(base_url=base_url,
+                        auth=auth,
+                        user_agent="alalkamys/code-migration-assistant")
+
+        _logger.info(f"Searching for '{repo_full_name}'..")
+        repo: Repository = github.get_repo(full_name_or_id=repo_full_name)
+
+        _logger.info(f"Repository '{repo_full_name}' found")
+
+        _logger.info("Creating pull request...")
+        pull_request = repo.create_pull(
+            title=pull_request_payload["title"],
+            body=pull_request_payload.get('body', NotSetType()),
+            base=pull_request_payload["base"],
+            head=pull_request_payload["head"],
+            maintainer_can_modify=pull_request_payload.get(
+                'maintainer_can_modify', NotSetType())
+        )
+
+        _logger.info(f"Pull request created successfully with ID '{
+                     pull_request.number}'")
+
+    except BadCredentialsException as bad_creds_exc:
+        error_msg = str(bad_creds_exc).strip()
+        if '401' in error_msg:
+            _logger.error("Authentication error: Make sure 'GITHUB_TOKEN' with a valid PAT. You can check the documentation at 'https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api' for more information")
+        elif '403' in error_msg:
+            _logger.error("Bad credentials: Make sure 'GITHUB_TOKEN' with a valid PAT with the required access. You can check the documentation at 'https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api' for more information")
+        else:
+            _logger(f"Unexpected BadCredentialsException: {error_msg}")
+
+    except UnknownObjectException:
+        _logger.error(
+            f"'{repo_full_name}' repository not found or '{github.get_user().login}' doesn't have access to it. Make sure to include a valid repo")
+
+    except GithubException as github_exc:
+        error_msg = str(github_exc).strip()
+        if '422' in error_msg and 'pull request already exists' in error_msg:
+            _logger.error(f"A pull requests already exists for '{repo_full_name}' repository for base:head '{
+                          pull_request_payload["base"]}:{pull_request_payload["head"]}'")
+        elif '422' in error_msg and '"field": "base"' in error_msg:
+            _logger.error(f"Invalid base ref: '{
+                          pull_request_payload["base"]}'. Make sure to include a valid 'base' ref in pullRequest.github.base")
+        else:
+            _logger.error(f"Unexpected GithubException: {error_msg}")
+
+    return pull_request
+
+
 def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]]) -> bool:
     """Raise a pull request based on the provided configuration.
 
@@ -470,7 +548,7 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
         bool: True if the pull request is successfully raised, False otherwise.
     """
     try:
-        pull_request: Union[GitPullRequest, None] = None
+        pull_request: Union[GitPullRequest, PullRequest, None] = None
         scm_provider_data: dict[str, str] = repo.scm_provider
         scm_provider_type = scm_provider_data['type'].lower().strip()
 
@@ -509,6 +587,46 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
                                                            repo_name=repo_name,
                                                            pull_request_payload=pull_request_payload,
                                                            creds=BasicAuthentication('PAT', AZURE_DEVOPS_PAT))
+            return pull_request is not None
+
+        elif scm_provider_type == "github":
+            _logger.info("GitHub pull request detected.")
+            GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', None)
+
+            if not GITHUB_TOKEN:
+                _logger.error(
+                    "GitHub API Key not found. Please set 'GITHUB_TOKEN' environment variable with your GitHub Personal Access Token (PAT) before running Code Migration Assistant")
+                _logger.info("Aborting..")
+                return False
+
+            domain = scm_provider_data['domain'].strip()
+            base_url = "https://api.github.com" if domain == "github.com" else "https://" + \
+                domain + "/api/v3"
+            repo_name = os.path.basename(
+                os.path.normpath(repo.working_tree_dir))
+            owner = scm_provider_data['owner'].strip()
+            repo_full_name = f"{owner}/{repo_name}"
+
+            pull_request_payload: dict[str,
+                                       Any] = pull_request_config[scm_provider_type]
+
+            pull_request_payload['body'] = "\n".join(
+                pull_request_payload.get('body', []))
+            pull_request_payload['head'] = f"refs/heads/{
+                repo.active_branch.name}"
+            base_ref: str = pull_request_payload['base']
+
+            if not base_ref.startswith("refs/heads/"):
+                _logger.debug(
+                    f"Updating base to 'refs/heads/{base_ref}'...")
+                pull_request_payload['base'] = f"refs/heads/{
+                    base_ref}"
+
+            pull_request = raise_pull_request_github(base_url=base_url,
+                                                     repo_full_name=repo_full_name,
+                                                     pull_request_payload=pull_request_payload,
+                                                     auth=auth.Token(GITHUB_TOKEN))
+
             return pull_request is not None
 
         else:

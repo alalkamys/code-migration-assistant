@@ -19,7 +19,17 @@
                 "baseUrl": "https://dev.azure.com/TestOrg/",
                 "project": "Test2"
             }
-        }
+        },
+        {
+            "name": "test-repo-3",
+            "source": "https://github.com/alalkamys/test-repo-3.git",
+            "type": "Remote",
+            "scmProvider": {
+                "type": "github",
+                "domain": "github.com",
+                "owner": "alalkamys"
+            }
+        }        
     ],
     "targetBranch": {
         "name": "feat/code-migration",
@@ -57,13 +67,25 @@
                     "id": "9691"
                 }
             ]
-        }
+        },
+        "github": {
+            "base": "main",
+            "title": "Feat: Code Migration",
+            "body": [
+                "This change is to prepare for our organization code migration\n",
+                "#### What has changed?\n",
+                "- [x] Replaced all repos matched files with the required replacements",
+                "- [x] Code is ready for the ogranization required migration"
+            ],
+            "maintainer_can_modify": true
+        }        
     },
     "replacements": {
         "https://github.mycompany.com/old-org": "https://github.com/new-org",
         "name: \\s*old-org/([^\\s]+)": "name: new-org/\\1",
         "type: \\s*githubenterprise": "type: github",
-        "endpoint: \\s*github-enterprise": "endpoint: github"
+        "endpoint: \\s*github-enterprise": "endpoint: github",
+        "terraform-aws-modules/": "https://github.com/terraform-aws-modules.git//"
     },
     "filesToExclude": [
         "test-repo/azure-pipelines.yaml",
