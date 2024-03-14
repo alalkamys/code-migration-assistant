@@ -8,8 +8,10 @@ from azure.devops.exceptions import AzureDevOpsServiceError
 from azure.devops.v7_0.git import GitPullRequest
 from azure.devops.v7_0.git import GitRepository
 from azure.devops.v7_0.git.git_client import GitClient
+from azure.devops.v7_0.git.models import GitPullRequestSearchCriteria
 from git import Actor
 from git import Repo
+from git.refs.head import Head
 from git.remote import PushInfo
 from git.remote import PushInfoList
 from git.exc import GitCommandError
@@ -21,11 +23,14 @@ from github.GithubException import BadCredentialsException
 from github.GithubException import GithubException
 from github.GithubException import UnknownObjectException
 from github.GithubObject import _NotSetType as NotSetType
+from github.PaginatedList import PaginatedList
 from github.PullRequest import PullRequest
 from github.Repository import Repository
 from msrest.exceptions import ClientRequestError
 from typing import Any
+from typing import List, Union
 from typing import Union
+from urllib import parse
 import json
 import logging
 import os
@@ -406,6 +411,11 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
             return False
         _logger.info(f"Changes pushed successfully to '{
             branch_name}' branch of remote '{remote_name}'.")
+
+        _logger.debug(f"Setting '{branch_name}' upstream branch to '{remote_name}/{
+                      remote_branch_name}'..")
+        repo.active_branch.set_tracking_branch(
+            repo.refs[f"{remote_name}/{remote_branch_name}"])
         return True
     except IndexError:
         _logger.error(f"Error accessing remote '{
@@ -415,6 +425,59 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
         _logger.error(
             f"'{remote_name}' is not a valid remote. Valid remotes have an entry in the repository's configuration")
         return False
+
+
+def get_pull_requests_azure_devops(
+    base_url: str,
+    project: str,
+    repo_name: str,
+    source_ref_name: str,
+    target_ref_name: str,
+    creds: BasicAuthentication,
+    status: str = 'active'
+) -> Union[List[GitPullRequest], None]:
+    """Get pull requests in Azure Repos based on source and target ref names.
+
+    Args:
+        base_url (str): The base URL of the Azure DevOps server.
+        project (str): The name of the Azure DevOps project.
+        repo_name (str): The name of the repository.
+        source_ref_name (str): The source ref name.
+        target_ref_name (str): The target ref name.
+        creds (BasicAuthentication): The basic authentication credentials.
+        status (str, optional): The pull request status. Default is 'active'.
+
+    Returns:
+        Union[List[GitPullRequest], None]: A list of open pull requests matching the criteria, or None if an error occurred.
+    """
+    try:
+        _logger.debug("Instantiating Azure DevOps connection...")
+        connection = Connection(base_url=base_url, creds=creds)
+
+        _logger.debug("Instantiating a git client..")
+        git_client: GitClient = connection.clients.get_git_client()
+
+        _logger.info(f"Querying open pull requests with source ref name '{source_ref_name}' and target ref name '{
+                     target_ref_name}' in '{parse.quote(f"{project}/{repo_name}")}'...")
+        pull_requests: List[GitPullRequest] = git_client.get_pull_requests(
+            project=project,
+            repository_id=repo_name,
+            search_criteria=GitPullRequestSearchCriteria(
+                source_ref_name=source_ref_name,
+                target_ref_name=target_ref_name,
+                status=status
+            )
+        )
+
+        _logger.info(f"Found '{len(pull_requests)
+                               }' open pull requests matching the criteria")
+        _logger.debug(f"Pull requests IDs: {
+                      [pull_request.pull_request_id for pull_request in pull_requests]}")
+        return pull_requests
+    except Exception as e:
+        _logger.error(
+            f"An error occurred while querying pull requests: {str(e)}")
+        return None
 
 
 def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str, pull_request_payload: dict[str, Any], creds: BasicAuthentication) -> GitPullRequest | None:
@@ -481,6 +544,83 @@ def raise_pull_request_azure_devops(base_url: str, project: str, repo_name: str,
         _logger.error(
             f"Failed to create pull request: {str(e).strip()}")
         return None
+
+
+def get_pull_requests_github(
+    base_url: str,
+    repo_full_name: str,
+    base: str,
+    head: str,
+    auth: Auth,
+    state: str = "open"
+) -> PaginatedList[PullRequest] | None:
+    """Retrieve pull requests from a GitHub repository.
+
+    Args:
+        base_url (str): The base URL of the GitHub instance.
+        repo_full_name (str): The full name of the repository (e.g., 'owner/repo').
+        base (str): The base branch of the pull request.
+        head (str): The head branch of the pull request.
+        auth (Auth): Authentication credentials for GitHub.
+        state (str, optional): The state of the pull request. Defaults to "open".
+
+    Returns:
+        PaginatedList[PaginatedList]: A list of pull request objects, or None if unsuccessful.
+    """
+    try:
+        _logger.debug("Instantiating a GitHub client..")
+        github = Github(
+            base_url=base_url,
+            auth=auth,
+            user_agent="alalkamys/code-migration-assistant"
+        )
+
+        _logger.info(f"Searching for repository '{repo_full_name}'..")
+        repo = github.get_repo(full_name_or_id=repo_full_name)
+
+        _logger.info(f"Repository '{repo_full_name}' found")
+
+        owner_or_org = repo_full_name.split('/')[0]
+
+        _logger.info(f"Querying {state} pull requests with base '{
+                     base}' and head '{owner_or_org}:{head}'...")
+        pulls = repo.get_pulls(state=state, base=base,
+                               head=f"{owner_or_org}:{head}")
+
+        _logger.info(
+            f"Found '{pulls.totalCount}' open pull requests matching the criteria")
+
+        _logger.debug(f"Pull Requests IDs: {[pull.number for pull in pulls]}")
+
+        return pulls
+
+    except BadCredentialsException as bad_creds_exc:
+        error_msg = str(bad_creds_exc).strip()
+        if '401' in error_msg:
+            _logger.error(
+                "Authentication error: Make sure 'GITHUB_TOKEN' contains a valid Personal Access Token (PAT).")
+        elif '403' in error_msg:
+            _logger.error(
+                "Bad credentials: Make sure 'GITHUB_TOKEN' contains a valid PAT with the required access.")
+        else:
+            _logger.error(f"Unexpected BadCredentialsException: {error_msg}")
+
+    except UnknownObjectException:
+        _logger.error(
+            f"'{repo_full_name}' repository not found or '{github.get_user().login}' doesn't have access to it. Make sure to include a valid repo")
+
+    except GithubException as github_exc:
+        error_msg = str(github_exc).strip()
+        if '422' in error_msg and '"field": "base"' in error_msg:
+            _logger.error(f"Invalid base ref: '{
+                          base}'. Make sure to include a valid 'base' ref in pullRequest.github.base")
+        elif '403' in error_msg and "Resource protected by organization SAML enforcement" in error_msg:
+            _logger.error(f"Forbidden: '{
+                          repo_full_name}' Resource protected by organization SAML enforcement. You must grant your Personal Access token access to an organization within this enterprise.")
+        else:
+            _logger.error(f"Unexpected GithubException: {error_msg}")
+
+    return None
 
 
 def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_payload: dict[str, Any], auth: Auth) -> PullRequest:
@@ -557,6 +697,144 @@ def raise_pull_request_github(base_url: str, repo_full_name: str, pull_request_p
             _logger.error(f"Unexpected GithubException: {error_msg}")
 
     return pull_request
+
+
+def is_open_pull_requests(repo: Repo, pull_request_config: dict[str, dict[str, Any]]) -> tuple[bool, bool]:
+    """
+    Check if there is an open pull request for the given repository based on the SCM provider type.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        pull_request_config (dict[str, dict[str, Any]]): The configuration for the pull request, containing 'providerData' and 'payload'.
+
+    Returns:
+        tuple[bool, bool]: A tuple indicating whether there is an open pull request and if an error occurred.
+    """
+    try:
+        scm_provider_data: dict[str, str] = repo.scm_provider
+        scm_provider_type = scm_provider_data['type'].lower().strip()
+
+        if scm_provider_type == "azuredevops":
+            _logger.info("Azure DevOps pull request detected.")
+            AZURE_DEVOPS_PAT = app_config.AZURE_DEVOPS_PAT
+
+            if not AZURE_DEVOPS_PAT:
+                _logger.error(
+                    "Personal Access Token (PAT) not found. Please set 'AZURE_DEVOPS_PAT' environment variable with your Azure DevOps Personal Access Token (PAT) before running Code Migration Assistant")
+                _logger.info("Aborting..")
+                return False, False
+
+            base_url = scm_provider_data['base_url'].strip()
+            project = scm_provider_data['project'].strip()
+            repo_name = os.path.basename(
+                os.path.normpath(repo.working_tree_dir))
+
+            pull_request_payload: dict[str,
+                                       Any] = pull_request_config[scm_provider_type]
+
+            source_ref_name = f"refs/heads/{
+                repo.active_branch.name}"
+            target_ref_name: str = pull_request_payload['targetRefName']
+
+            if not target_ref_name.startswith("refs/heads/"):
+                _logger.debug(
+                    f"Updating targetRefName to 'refs/heads/{target_ref_name}'...")
+                target_ref_name = f"refs/heads/{
+                    target_ref_name}"
+
+            pull_requests = get_pull_requests_azure_devops(base_url=base_url,
+                                                           project=project,
+                                                           repo_name=repo_name,
+                                                           source_ref_name=source_ref_name,
+                                                           target_ref_name=target_ref_name,
+                                                           status="active",
+                                                           creds=BasicAuthentication('PAT', AZURE_DEVOPS_PAT))
+            if pull_requests is not None:
+                is_open_pr = len(pull_requests) > 0
+                is_err = False
+
+            else:
+                is_open_pr = False
+                is_err = True
+
+            return is_open_pr, is_err
+
+        elif scm_provider_type == "github":
+            _logger.info("GitHub pull request detected.")
+            GITHUB_TOKEN = app_config.GITHUB_TOKEN
+
+            if not GITHUB_TOKEN:
+                _logger.error(
+                    "GitHub API Key not found. Please set 'GITHUB_TOKEN' environment variable with your GitHub Personal Access Token (PAT) before running Code Migration Assistant")
+                _logger.info("Aborting..")
+                return False
+
+            domain = scm_provider_data['domain'].strip()
+            base_url = "https://api.github.com" if domain == "github.com" else "https://" + \
+                domain + "/api/v3"
+            repo_name = os.path.basename(
+                os.path.normpath(repo.working_tree_dir))
+            owner_or_org = scm_provider_data['owner_or_org'].strip()
+            repo_full_name = f"{owner_or_org}/{repo_name}"
+
+            pull_request_payload: dict[str,
+                                       Any] = pull_request_config[scm_provider_type]
+
+            head_ref = f"refs/heads/{
+                repo.active_branch.name}"
+            base_ref: str = pull_request_payload['base']
+
+            if not base_ref.startswith("refs/heads/"):
+                _logger.debug(
+                    f"Updating base to 'refs/heads/{base_ref}'...")
+                base_ref = f"refs/heads/{
+                    base_ref}"
+
+            pull_requests: PaginatedList = get_pull_requests_github(base_url=base_url,
+                                                                    repo_full_name=repo_full_name,
+                                                                    base=base_ref,
+                                                                    head=head_ref,
+                                                                    state="open",
+                                                                    auth=auth.Token(GITHUB_TOKEN))
+
+            if pull_requests is not None:
+                is_open_pr = pull_requests.totalCount > 0
+                is_err = False
+
+            else:
+                is_open_pr = False
+                is_err = True
+
+            return is_open_pr, is_err
+
+        else:
+            _logger.error(f"Unsupported pull request type: '{
+                          scm_provider_type}'")
+            return False, True
+
+    except KeyError as key_err:
+        missing_key = str(key_err).strip().replace("'", "")
+        path_to_key = missing_key
+        if missing_key == 'type':
+            path_to_key = f"targetRepos[].scmProvider.{missing_key}"
+        elif missing_key == 'baseUrl':
+            path_to_key = f"pullRequest.providerData.base_url"
+        elif missing_key == 'project':
+            path_to_key = f"pullRequest.providerData.{missing_key}"
+        elif missing_key == scm_provider_type:
+            path_to_key = f"pullRequest.{scm_provider_type}"
+        elif missing_key == 'targetRefName':
+            path_to_key = f"pullRequest.{scm_provider_type}.{missing_key}"
+        targets_config_file_path = os.path.abspath(
+            app_config.TARGETS_CONFIG_FILE)
+        _logger.error(
+            f"'{missing_key}' key not found. Please make sure to provide '{path_to_key}' in '{targets_config_file_path}'")
+        _logger.info("Aborting..")
+        return False, True
+
+    except Exception as e:
+        _logger.error(f"An unexpected error encountered: {str(e)}")
+        return False, True
 
 
 def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]]) -> bool:
@@ -693,3 +971,57 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
     except Exception as e:
         _logger.error(f"An unexpected error encountered: {str(e)}")
         return False
+
+
+def get_files_count(repo: Repo, file_status: str = "unstaged") -> int:
+    """
+    Get the count of files based on their status in the repository.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        file_status (str, optional): The status of files to count. Valid options are 'staged', 'unstaged', or 'untracked'. Defaults to 'unstaged'.
+
+    Returns:
+        int: The count of files based on the specified status.
+    """
+    if file_status == "staged":
+        return len(repo.index.diff("HEAD"))
+    elif file_status == "modified":
+        return len(repo.index.diff(None))
+    elif file_status == "untracked":
+        return len(repo.untracked_files)
+    elif file_status == "unstaged":
+        return len(repo.untracked_files) + len(repo.index.diff(None))
+    else:
+        raise ValueError(
+            "Invalid file status. Must be 'staged', 'unstaged', or 'untracked'.")
+
+
+def has_tracking_branch(branch: Head) -> bool:
+    """Check if the branch has a tracking branch.
+
+    Args:
+        branch (Head): The branch to check.
+
+    Returns:
+        bool: True if the branch has a tracking branch, False otherwise.
+    """
+    return branch.tracking_branch() is not None
+
+
+def needs_push(repo: Repo, branch_name: str | None = None) -> bool:
+    """Check if the specified local branch or the active branch has commits that need to be pushed to its tracking remote branch.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        branch_name (str, optional): The name of the local branch. If not provided, the active branch is used.
+
+    Returns:
+        bool: True if there are commits to be pushed, False otherwise.
+    """
+    branch = repo.heads[branch_name] if branch_name else repo.active_branch
+
+    tracking_branch = branch.tracking_branch()
+    if tracking_branch:
+        return any(repo.iter_commits(f"{tracking_branch.name}..{branch.name}"))
+    return False
