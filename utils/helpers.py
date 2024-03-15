@@ -225,7 +225,7 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bo
 
 
 # TODO: find a way to determine if the end result contains some errors but were skipped
-def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False) -> dict[str, dict[str, Any]] | None:
+def search_and_replace(directory: str, patterns: dict, excluded_files: list[str] = [], hidden_dirs: bool = False, search_only: bool = False) -> dict[str, dict[str, Any]] | None:
     """Searches all files in a directory (including subdirectories) for patterns and replaces them.
 
     Args:
@@ -289,7 +289,7 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
                     except re.error as regex_error:
                         _logger.error(f"Error in regex pattern '{
                                       pattern}': {regex_error}")
-                if updated_content != content:
+                if updated_content != content and not search_only:
                     try:
                         _logger.info("Replacing..")
                         with open(file_path, 'w') as f:
