@@ -1,4 +1,5 @@
 {
+    "mode": "dev",    
     "targetRepos": [
         {
             "name": "test-repo",
