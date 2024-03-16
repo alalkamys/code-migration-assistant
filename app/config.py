@@ -1,4 +1,5 @@
 from app.utils import filters
+from app.utils import formatters
 
 from git import RemoteProgress
 from logging import Logger
@@ -62,20 +63,21 @@ class AppConfig:
             }
         },
         'formatters': {
-            'default': {
-                'format': '[%(levelname)s]:%(name)s:%(asctime)s, %(message)s',
+            'colored_formatter': {
+                '()': formatters.ColoredFormatter,
+                'fmt': '[%(levelname)s]:%(name)s:%(asctime)s, %(message)s'
             }
         },
         'handlers': {
             'stdout_handler': {
                 'class': 'logging.StreamHandler',
-                'formatter': 'default',
+                'formatter': 'colored_formatter',
                 'stream': 'ext://sys.stdout',
                 'filters': ['info_lvl_filter']
             },
             'stderr_handler': {
                 'class': 'logging.StreamHandler',
-                'formatter': 'default',
+                'formatter': 'colored_formatter',
                 'stream': 'ext://sys.stderr',
                 'filters': ['info_lvl_filter_inverter']
             },
