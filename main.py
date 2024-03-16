@@ -40,13 +40,18 @@ if __name__ == "__main__":
         commit = False
         push = False
         create_pull_request = False
-    else:
+    elif MODE == 'prod':
         check_branch = True
         setup_identity = True
         search_only = False
         commit = True
         push = True
         create_pull_request = True
+    else:
+        _logger.error(f"Invalid mode: '{
+                      MODE}'. The mode must be set to either 'dev' for development/testing or 'prod' for production usage.")
+        _logger.info("Exiting..")
+        sys.exit(6)
 
     if len(TARGET_REPOS) > 0 and len(REPLACEMENTS) > 0:
         _logger.info(f"Loaded '{len(TARGET_REPOS)}' repositories out of '{
