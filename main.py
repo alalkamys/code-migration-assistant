@@ -226,9 +226,6 @@ if __name__ == "__main__":
                     _logger.info("Exiting..")
                     sys.exit(5)
 
-        _logger.info(f"Migration summary results (JSON Format): {
-            json.dumps(final_result, sort_keys=True, indent=4)}")
-
         combined_table = []
         for repo_name, repo_result in final_result.items():
             for pattern, pattern_data in repo_result.items():
@@ -245,7 +242,7 @@ if __name__ == "__main__":
                 combined_table.append(row)
 
         headers = ["Repository", "Pattern", "Count", "Matched Files"]
-        _logger.info("Migration summary results: (Table Format)")
+        _logger.info("Migration summary results:")
         _logger.info(
             f"\n{tabulate(combined_table, headers=headers, tablefmt="grid")}")
     else:
