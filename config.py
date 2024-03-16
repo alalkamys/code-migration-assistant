@@ -16,6 +16,7 @@ class AppConfig:
         REMOTE_TARGETS_CLONING_PATH (str): The path where remote targets are cloned. Defaults to "./remote-targets".
         AZURE_DEVOPS_PAT (str): The Personal Access Token (PAT) for Azure DevOps. Defaults to None.
         GITHUB_TOKEN (str): The Personal Access Token (PAT) for GitHub. Defaults to None.
+        GITHUB_ENTERPRISE_TOKEN (str): The Personal Access Token (PAT) for GitHub Enterprise. Defaults to None.
         ACTOR (dict): A dictionary containing the username and email of the application's agent.
         USER_AGENT (str): The user agent for making HTTP requests. Defaults to "alalkamys/code-migration-assistant".
         LOGGING_CONFIG (dict): Configuration settings for logging.
@@ -34,6 +35,8 @@ class AppConfig:
     AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', None)
 
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', None)
+    
+    GITHUB_ENTERPRISE_TOKEN = os.getenv('GITHUB_ENTERPRISE_TOKEN', None)
 
     ACTOR = {
         'username': "Code Migration Assistant Agent",
