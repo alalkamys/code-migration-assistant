@@ -1,5 +1,5 @@
-from app.utils import filters
-from app.utils import formatters
+from app.utils.filters import SingleLevelFilter
+from app.utils.formatters import ColoredFormatter
 
 from git import RemoteProgress
 from logging import Logger
@@ -52,19 +52,19 @@ class AppConfig:
         'disable_existing_loggers': True,
         'filters': {
             'info_lvl_filter': {
-                '()': filters.SingleLevelFilter,
+                '()': SingleLevelFilter,
                 'passlevel': logging.INFO,
                 'reject': False
             },
             'info_lvl_filter_inverter': {
-                '()': filters.SingleLevelFilter,
+                '()': SingleLevelFilter,
                 'passlevel': logging.INFO,
                 'reject': True
             }
         },
         'formatters': {
             'colored_formatter': {
-                '()': formatters.ColoredFormatter,
+                '()': ColoredFormatter,
                 'fmt': '[%(levelname)s]:%(name)s:%(asctime)s, %(message)s'
             }
         },
