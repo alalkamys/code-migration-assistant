@@ -1,5 +1,5 @@
 {
-    "mode": "dev",    
+    "mode": "dev",
     "targetRepos": [
         {
             "name": "test-repo",
@@ -30,7 +30,17 @@
                 "domain": "github.com",
                 "ownerOrOrg": "alalkamys"
             }
-        }        
+        },
+        {
+            "name": "test-repo-4",
+            "source": "https://github.mycompany.com/myOrg/test-repo-4.git",
+            "type": "Remote",
+            "scmProvider": {
+                "type": "github",
+                "domain": "github.company.com",
+                "ownerOrOrg": "myOrg"
+            }
+        }
     ],
     "targetBranch": {
         "name": "feat/code-migration",
@@ -79,7 +89,7 @@
                 "- [x] Code is ready for the ogranization required migration"
             ],
             "maintainer_can_modify": true
-        }        
+        }
     },
     "replacements": {
         "https://github.mycompany.com/old-org": "https://github.com/new-org",
