@@ -14,7 +14,6 @@ from app.utils.helpers import search_and_replace
 
 from tabulate import tabulate
 from copy import deepcopy
-import json
 import logging.config
 import os
 import sys
