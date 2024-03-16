@@ -1,4 +1,4 @@
-from utils import filters
+from app.utils import filters
 
 from git import RemoteProgress
 from logging import Logger
@@ -35,7 +35,7 @@ class AppConfig:
     AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', None)
 
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', None)
-    
+
     GITHUB_ENTERPRISE_TOKEN = os.getenv('GITHUB_ENTERPRISE_TOKEN', None)
 
     ACTOR = {

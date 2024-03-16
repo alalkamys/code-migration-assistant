@@ -1,5 +1,5 @@
-from config import app_config
-from config import RemoteProgressReporter
+from app.config import app_config
+from app.config import RemoteProgressReporter
 
 from azure.devops.connection import Connection
 from azure.devops.credentials import BasicAuthentication
