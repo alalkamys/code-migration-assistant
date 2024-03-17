@@ -1,4 +1,4 @@
-from app.utils.filters import SingleLevelFilter
+from app.utils.filters import MaxLevelFilter
 from app.utils.formatters import ColoredFormatter
 
 from git import RemoteProgress
@@ -51,15 +51,15 @@ class AppConfig:
         'version': 1,
         'disable_existing_loggers': True,
         'filters': {
-            'info_lvl_filter': {
-                '()': SingleLevelFilter,
-                'passlevel': logging.INFO,
-                'reject': False
+            'upper_threshold_filter': {
+                '()': MaxLevelFilter,
+                'maxlevel': logging.WARNING,
+                'invert': False
             },
-            'info_lvl_filter_inverter': {
-                '()': SingleLevelFilter,
-                'passlevel': logging.INFO,
-                'reject': True
+            'upper_threshold_inverter': {
+                '()': MaxLevelFilter,
+                'maxlevel': logging.WARNING,
+                'invert': True
             }
         },
         'formatters': {
@@ -73,13 +73,13 @@ class AppConfig:
                 'class': 'logging.StreamHandler',
                 'formatter': 'colored_formatter',
                 'stream': 'ext://sys.stdout',
-                'filters': ['info_lvl_filter']
+                'filters': ['upper_threshold_filter']
             },
             'stderr_handler': {
                 'class': 'logging.StreamHandler',
                 'formatter': 'colored_formatter',
                 'stream': 'ext://sys.stderr',
-                'filters': ['info_lvl_filter_inverter']
+                'filters': ['upper_threshold_inverter']
             },
         },
         'loggers': {

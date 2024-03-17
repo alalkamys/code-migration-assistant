@@ -42,28 +42,38 @@ class SingleLevelFilter(logging.Filter):
 
 class MaxLevelFilter(logging.Filter):
     """
-    A class to represent a maximum logging level filter.
+    A filter to control logging levels.
 
-    ...
+    Attributes:
+        maxlevel (int): The maximum log level to allow (inclusive).
+        invert (bool): If True, invert the filter logic.
 
-    Attributes
-    ----------
-    maxlevel : int
-        maximum log level
-
-    Methods
-    -------
-    filter(record):
-        compares incoming logging records level no and accept it if record.levelno < self.maxlevel.
+    Methods:
+        filter(record): Apply the filter to the given record.
     """
 
-    def __init__(self, maxlevel: int):
-        self.maxlevel = maxlevel
+    def __init__(self, maxlevel: int, invert: bool = False):
+        """
+        Initialize the MaxLevelFilter.
 
-    def filter(self, record: LogRecord):
-        """Filters incoming logging record.
+        Args:
+            maxlevel (int): The maximum log level to allow.
+            invert (bool, optional): If True, invert the filter logic (default is False).
+        """
+        self.maxlevel = maxlevel
+        self.invert = invert
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """
+        Apply the filter to the given record.
+
+        Args:
+            record (logging.LogRecord): The logging record to filter.
 
         Returns:
-            compares incoming logging records level no and accept it if record.levelno < self.maxlevel.
+            bool: True if the record passes the filter, False otherwise.
         """
-        return record.levelno < self.maxlevel
+        if self.invert:
+            return record.levelno > self.maxlevel
+        else:
+            return record.levelno <= self.maxlevel
