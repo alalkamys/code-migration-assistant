@@ -7,7 +7,7 @@
 # Code Migration Assistant
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![GitHub issues open](https://img.shields.io/github/issues/alalkamys/code-migration-assistant.svg?maxAge=2592000)](https://github.com/alalkamys/code-migration-assistant/issues)
+[![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/alalkamys/code-migration-assistant)](https://github.com/alalkamys/code-migration-assistant/issues)
 [![Version](https://img.shields.io/github/release/alalkamys/code-migration-assistant.svg)](https://github.com/alalkamys/code-migration-assistant/releases/)
 
 `Code Migration Assistant` is a powerful tool designed to streamline and automate the process of code migration at scale. With its intuitive interface and robust features, it enables users to effortlessly search for and replace patterns across multiple repositories, saving time and ensuring consistency in codebases.
