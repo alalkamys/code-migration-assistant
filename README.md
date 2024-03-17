@@ -6,9 +6,33 @@
 
 # Code Migration Assistant
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![GitHub issues open](https://img.shields.io/github/issues/alalkamys/code-migration-assistant.svg?maxAge=2592000)](https://github.com/alalkamys/code-migration-assistant/issues)
+[![Version](https://img.shields.io/github/release/alalkamys/code-migration-assistant.svg)](https://github.com/alalkamys/code-migration-assistant/releases/)
+
 `Code Migration Assistant` is a powerful tool designed to streamline and automate the process of code migration at scale. With its intuitive interface and robust features, it enables users to effortlessly search for and replace patterns across multiple repositories, saving time and ensuring consistency in codebases.
 
 With `Code Migration Assistant` teams can accelerate the migration of code repositories. By automating tedious tasks, ensuring uniformity across codebases, it empowers teams to execute seamless migrations with confidence and efficiency.
+
+## Table of contents
+
+<!--ts-->
+- [Code Migration Assistant](#code-migration-assistant)
+  - [Table of contents](#table-of-contents)
+  - [Key Features](#key-features)
+  - [Why Code Migration Assistant?](#why-code-migration-assistant)
+  - [Requriements](#requriements)
+  - [Getting Started](#getting-started)
+  - [Creating Your Own Targets Config File](#creating-your-own-targets-config-file)
+    - [`mode` (Optional)](#mode-optional)
+    - [`targetRepos` (Required)](#targetrepos-required)
+    - [`targetBranch` (Optional)](#targetbranch-optional)
+    - [`commitMessage` (Optional)](#commitmessage-optional)
+    - [`pullRequest` (Optional)](#pullrequest-optional)
+    - [`replacements` (Optional)](#replacements-optional)
+    - [`filesToExclude` (Optional)](#filestoexclude-optional)
+  - [Environment Variables](#environment-variables)
+<!--te-->
 
 ## Key Features
 
@@ -27,6 +51,12 @@ In large-scale software systems, even the slightest changes can necessitate mult
 `Code Migration Assistant` addresses this challenge by automating the process of code migration at scale. By providing a centralized solution for managing and executing replacements across multiple repositories, it streamlines the code migration workflow, reduces manual effort, and ensures consistency and accuracy across the entire codebase. `Code Migration Assistant` not only automates and enforces the process of replacing patterns across repositories but also standardizes branching, commit messages, and pull requests. By doing this, it promotes best practices and enhances collaboration among team members. This ensures that code changes are well-documented, easily reviewable, and seamlessly integrated into the development workflow.
 
 With `Code Migration Assistant`, developers and DevOps teams can efficiently manage code changes, implement updates, and ensure that all repositories are synchronized with the latest requirements or standards. Whether it's updating URLs, replacing sensitive information, or standardizing variable names, `Code Migration Assistant` simplifies the process and empowers teams to focus on higher-value tasks.
+
+## Requriements
+
+- [Git:][git] `Code Migration Assistant` relies on Git for cloning and interacting with repositories. Make sure Git is installed on your system and configured properly.
+- Access to Target Repositories: Ensure that you have appropriate access permissions to clone and modify the target repositories specified in the configuration file (`config.json`).
+- Environment Variables: Set up the required environment variables such as `AZURE_DEVOPS_PAT`, `GITHUB_TOKEN` and `GITHUB_ENTERPRISE_TOKEN` with the appropriate access permissions to authenticate with the respective SCM providers and raise pull requests.
 
 ## Getting Started
 
@@ -53,6 +83,24 @@ CODE_MIGRATION_ASSISTANT_TARGETS_CONFIG_FILE='<path/to/your/config-file>' python
 > :bulb: **Tip:** See [all supported environment variables](#environment-variables)
 
 5. Review the generated logs and output to ensure successful execution.
+
+<div align="center">
+
+![Code Migration Assistant Logs Output 01][code-migration-assistant-logs-01]
+
+![Code Migration Assistant Logs Output 02][code-migration-assistant-logs-02]
+
+</div>
+
+6. Check the pull requests.
+
+<div align="center">
+
+![Code Migration Assistant Pull Request 01][code-migration-assistant-pr-github-01]
+
+![Code Migration Assistant Pull Request 02][code-migration-assistant-pr-github-02]
+
+</div>
 
 ## Creating Your Own Targets Config File
 
@@ -246,6 +294,18 @@ Below is an explanation of each field in the configuration file:
 | `GITHUB_ENTERPRISE_TOKEN`                              | GitHub Enterprise Personal Access Token (PAT)                             | `None`                               |
 | `CODE_MIGRATION_ASSISTANT_USER_AGENT`                  | User agent used for HTTP requests by Code Migration Assistant             | `alalkamys`/code-migration-assistant |
 
+<!--*********************  R E F E R E N C E S  *********************-->
+
+<!-- * Links * -->
+
+[git]: https://git-scm.com/
 [ado-api-create-pr]: https://learn.microsoft.com/en-us/rest/api/azure/devops/git/pull-requests/create?view=azure-devops-rest-7.1&tabs=HTTP
 [github-api-create-pr]: https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
 [python-re-module]: https://docs.python.org/3/library/re.html
+
+<!-- * Images * -->
+
+[code-migration-assistant-logs-01]: docs/assets/imgs/code-migration-assistant-logs-01.png
+[code-migration-assistant-logs-02]: docs/assets/imgs/code-migration-assistant-logs-02.png
+[code-migration-assistant-pr-github-01]: docs/assets/imgs/code-migration-assistant-pr-github-01.png
+[code-migration-assistant-pr-github-02]: docs/assets/imgs/code-migration-assistant-pr-github-02.png
