@@ -62,7 +62,9 @@ def get_pulls(
         _logger.info(
             f"Found '{pulls.totalCount}' {state} pull requests matching the criteria")
 
-        _logger.debug(f"Pull Requests IDs: {[pull.number for pull in pulls]}")
+        if pulls.totalCount > 0:
+            _logger.debug(f"Pull Requests IDs: {
+                [f"PR #{pull.number}" for pull in pulls]}")
 
         return pulls
 
