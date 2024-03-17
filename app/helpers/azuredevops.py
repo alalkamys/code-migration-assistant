@@ -66,8 +66,11 @@ def get_pull_requests(
 
         _logger.info(f"Found '{len(pull_requests)
                                }' {status} pull requests matching the criteria")
-        _logger.debug(f"Pull requests IDs: {
-                      [pull_request.pull_request_id for pull_request in pull_requests]}")
+
+        if len(pull_requests) > 0:
+            _logger.debug(f"Pull requests IDs: {
+                [f"PR !{pull_request.pull_request_id}" for pull_request in pull_requests]}")
+
         return pull_requests
     except Exception as e:
         _logger.error(

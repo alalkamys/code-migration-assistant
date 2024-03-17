@@ -70,11 +70,14 @@ def is_open_pull_requests(repo: Repo, pull_request_config: dict[str, dict[str, A
             if pull_requests is not None:
                 is_open_pr = len(pull_requests) > 0
                 is_err = False
-
+                _logger.debug(f"Received pulls total count: '{
+                              len(pull_requests)}'")
             else:
                 is_open_pr = False
                 is_err = True
 
+            _logger.debug(f"is_open_pr: '{is_open_pr}'")
+            _logger.debug(f"is_err: '{is_err}'")
             return is_open_pr, is_err
 
         elif scm_provider_type == "github":
