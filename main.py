@@ -30,7 +30,7 @@ if __name__ == "__main__":
     REPLACEMENTS = TARGETS_CONFIG['replacements']
     FILES_TO_EXCLUDE = TARGETS_CONFIG.get('filesToExclude', [])
 
-    MODE = TARGETS_CONFIG.get('mode', 'prod')
+    MODE: str = TARGETS_CONFIG.get('mode', 'prod').strip().lower()
 
     if MODE == 'dev':
         check_branch = False
