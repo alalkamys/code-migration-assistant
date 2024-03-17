@@ -165,17 +165,17 @@ if __name__ == "__main__":
 
                                     if open_pull_request:
                                         _logger.info(
-                                            f"'{repo_name}' has an open pull request")
+                                            f"'{repo_name}' has an open pull request. Skipping..")
                                         create_pull_request = False
+                                        if repo != TARGET_REPOS[-1]:
+                                            _logger.info(
+                                                "Skipping to the next migration..")
+                                        continue
                                     else:
                                         _logger.info(
                                             f"'{repo_name}' doesn't have an open pull request")
                                         _logger.info(
                                             "Proceeding with raising pull request..")
-                                        if repo != TARGET_REPOS[-1]:
-                                            _logger.info(
-                                                "Skipping to the next migration..")
-                                        continue
 
                                 else:
                                     if repo != TARGET_REPOS[-1]:
