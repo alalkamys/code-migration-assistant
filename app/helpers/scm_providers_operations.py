@@ -82,15 +82,16 @@ def is_open_pull_requests(repo: Repo, pull_request_config: dict[str, dict[str, A
 
         elif scm_provider_type == "github":
             _logger.info("GitHub pull request detected.")
-            GITHUB_TOKEN = app_config.GITHUB_TOKEN
+            domain = scm_provider_data['domain'].strip()
+
+            GITHUB_TOKEN = app_config.GITHUB_TOKEN if domain == "github.com" else app_config.GITHUB_ENTERPRISE_TOKEN
 
             if not GITHUB_TOKEN:
                 _logger.error(
-                    "GitHub API Key not found. Please set 'GITHUB_TOKEN' environment variable with your GitHub Personal Access Token (PAT) before running Code Migration Assistant")
+                    "GitHub API Key not found. Please set 'GITHUB_TOKEN' environment variable for with your GitHub Personal Access Token (PAT) or set 'GITHUB_ENTERPRISE_TOKEN' for GitHub Enterprise before running Code Migration Assistant")
                 _logger.info("Aborting..")
                 return False
 
-            domain = scm_provider_data['domain'].strip()
             base_url = "https://api.github.com" if domain == "github.com" else "https://" + \
                 domain + "/api/v3"
             repo_name = os.path.basename(
