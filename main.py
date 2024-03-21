@@ -12,8 +12,9 @@ from app.helpers.operations import search_and_replace
 from app.helpers.scm_providers_operations import is_open_pull_requests
 from app.helpers.scm_providers_operations import raise_pull_request
 
-from tabulate import tabulate
 from copy import deepcopy
+from tabulate import tabulate
+from typing import Literal
 import logging.config
 import os
 import sys
@@ -30,23 +31,10 @@ if __name__ == "__main__":
     REPLACEMENTS = TARGETS_CONFIG['replacements']
     FILES_TO_EXCLUDE = TARGETS_CONFIG.get('filesToExclude', [])
 
-    MODE: str = TARGETS_CONFIG.get('mode', 'prod').strip().lower()
+    MODE: Literal['dev', 'prod'] = TARGETS_CONFIG.get(
+        'mode', 'prod').strip().lower()
 
-    if MODE == 'dev':
-        check_branch = False
-        setup_identity = False
-        search_only = True
-        commit = False
-        push = False
-        create_pull_request = False
-    elif MODE == 'prod':
-        check_branch = True
-        setup_identity = True
-        search_only = False
-        commit = True
-        push = True
-        create_pull_request = True
-    else:
+    if MODE not in app_config.APP_MODES:
         _logger.error(f"Invalid mode: '{
                       MODE}'. The mode must be set to either 'dev' for development/testing or 'prod' for production usage.")
         _logger.info("Exiting..")
@@ -64,6 +52,22 @@ if __name__ == "__main__":
                 os.path.normpath(repo.working_tree_dir))
 
             _logger.info(f"Migrating '{repo_name}'..")
+
+            check_branch = app_config.APP_MODES[MODE]['flags']['check_branch']
+            setup_identity = app_config.APP_MODES[MODE]['flags']['setup_identity']
+            search_only = app_config.APP_MODES[MODE]['flags']['search_only']
+            commit = app_config.APP_MODES[MODE]['flags']['commit']
+            push = app_config.APP_MODES[MODE]['flags']['push']
+            create_pull_request = app_config.APP_MODES[MODE]['flags']['create_pull_request']
+
+            _logger.debug("Initial Flags")
+            _logger.debug("-------------")
+            _logger.debug(f"check_branch: {check_branch}")
+            _logger.debug(f"setup_identity: {setup_identity}")
+            _logger.debug(f"search_only: {search_only}")
+            _logger.debug(f"commit: {commit}")
+            _logger.debug(f"push: {push}")
+            _logger.debug(f"create_pull_request: {create_pull_request}")
 
             if setup_identity:
                 identity_configured = identity_setup(
@@ -189,6 +193,15 @@ if __name__ == "__main__":
                                 _logger.info(
                                     "Skipping to the next migration..")
                             continue
+
+            _logger.debug("Flags After Checks")
+            _logger.debug("------------------")
+            _logger.debug(f"check_branch: {check_branch}")
+            _logger.debug(f"setup_identity: {setup_identity}")
+            _logger.debug(f"search_only: {search_only}")
+            _logger.debug(f"commit: {commit}")
+            _logger.debug(f"push: {push}")
+            _logger.debug(f"create_pull_request: {create_pull_request}")
 
             if commit:
                 COMMIT_MESSAGE = TARGETS_CONFIG.get('commitMessage', None)
