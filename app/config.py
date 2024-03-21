@@ -12,6 +12,9 @@ class AppConfig:
 
     Attributes:
         APP_NAME (str): The name of the application. Defaults to "code_migration_assistant".
+        APP_MODES (dict): Available modes for the application and their corresponding flags configuration.
+            The flags configuration is a nested dictionary with boolean values indicating whether each flag is enabled or not.
+            Keys are mode names ('dev', 'prod', etc.), and values are dictionaries with flag names as keys and boolean values as values.
         LOG_LEVEL (str): The logging level for the application. Defaults to "INFO".
         TARGETS_CONFIG_FILE (str): The file path to the targets configuration file. Defaults to "./config.json".
         REMOTE_TARGETS_CLONING_PATH (str): The path where remote targets are cloned. Defaults to "./remote-targets".
@@ -24,6 +27,29 @@ class AppConfig:
     """
     APP_NAME = os.getenv('CODE_MIGRATION_ASSISTANT_APP_NAME',
                          "code_migration_assistant")
+
+    APP_MODES: dict[str, dict[str, dict[str, bool]]] = {
+        'dev': {
+            'flags': {
+                'check_branch': False,
+                'setup_identity': False,
+                'search_only': True,
+                'commit': False,
+                'push': False,
+                'create_pull_request': False
+            }
+        },
+        'prod': {
+            'flags': {
+                'check_branch': True,
+                'setup_identity': True,
+                'search_only': False,
+                'commit': True,
+                'push': True,
+                'create_pull_request': True
+            }
+        }
+    }
 
     LOG_LEVEL = os.getenv('CODE_MIGRATION_ASSISTANT_LOG_LEVEL', "INFO")
 
