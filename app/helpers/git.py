@@ -298,7 +298,7 @@ def commit_changes(repo: Repo, title: str, description: str = None, author: Acto
 
 
 def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: str | None = None, timeout: int | None = 180) -> bool:
-    """Push changes to the remote repository.
+    """Push changes to the remote repository, pulling changes from the remote branch if it exists.
 
     Args:
         repo (Repo): The GitPython Repo object representing the local repository.
@@ -318,7 +318,8 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
         This function pushes changes from the active local branch to the specified remote branch. 
         It handles various scenarios such as existing and non-existing remotes, and provides detailed logging 
         information during the push operation. The timeout parameter allows customization of the maximum time 
-        allowed for the push operation.
+        allowed for the push operation. Before pushing, if the specified remote branch exists, it pulls changes 
+        from that branch to ensure synchronization.
 
     Example:
         # Push changes from the active branch to the 'main' branch of the remote repository 'origin'
@@ -330,44 +331,69 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
         remote = repo.remotes[remote_name]
         branch_name = repo.active_branch.name
         remote_branch_name = remote_branch_name if remote_branch_name else branch_name
-        _logger.info(f"Pushing changes to '{
-                     remote_branch_name}' branch of remote '{remote_name}'...")
-        result: PushInfoList = remote.push(
-            refspec=f"{branch_name}:{remote_branch_name}", progress=RemoteProgressReporter(_logger), kill_after_timeout=timeout)
-        try:
-            assert len(result) != 0
-            VALID_PUSH_INFO_FLAGS: list[int] = [PushInfo.FAST_FORWARD, PushInfo.NEW_HEAD,
-                                                PushInfo.UP_TO_DATE, PushInfo.FORCED_UPDATE, PushInfo.NEW_TAG]
-            for push_info in result:
-                _logger.debug("+------------+")
-                _logger.debug("| Push Info: |")
-                _logger.debug("+------------+")
-                _logger.debug(f"Flag: {push_info.flags}")
-                _logger.debug(f"Local ref: {push_info.local_ref}")
-                _logger.debug(f"Remote Ref: {push_info.remote_ref}")
-                _logger.debug(f"Remote ref string: {
-                    push_info.remote_ref_string}")
-                _logger.debug(f"Old Commit: {push_info.old_commit}")
-                _logger.debug(f"Summary: {push_info.summary.strip()}")
-                if push_info.flags not in VALID_PUSH_INFO_FLAGS:
-                    if push_info.flags == PushInfo.ERROR:
-                        _logger.error(
-                            f"Incomplete push error: Push contains rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
-                    else:
-                        _logger.error(
-                            "Unexpected push error, maybe the remote rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
-                    return False
-        except AssertionError:
-            _logger.error(f"Pushing changes to remote '{
-                          remote_name}' completely failed. Check your internet connection and run in 'debug' mode to see the remote push progress.")
-            return False
-        _logger.info(f"Changes pushed successfully to '{
-            branch_name}' branch of remote '{remote_name}'.")
 
-        _logger.debug(f"Setting '{branch_name}' upstream branch to '{remote_name}/{
-                      remote_branch_name}'..")
-        repo.active_branch.set_tracking_branch(
-            repo.refs[f"{remote_name}/{remote_branch_name}"])
+        push_is_needed = True
+
+        remote_refs = remote.refs
+        if remote_branch_name in remote_refs:
+            _logger.debug(
+                f"'{remote_name}/{remote_branch_name}' remote branch exists.")
+            if not has_tracking_branch(repo.active_branch):
+                _logger.debug(
+                    f"'{branch_name}' has no tracking branch. Setting..")
+                repo.active_branch.set_tracking_branch(
+                    repo.refs[f"{remote_name}/{remote_branch_name}"])
+            _logger.debug(f"Pulling changes from '{
+                          remote_branch_name}' branch of remote '{remote_name}' to '{branch_name}'...")
+            remote.pull(
+                refspec=remote_branch_name, kill_after_timeout=timeout)
+
+            push_is_needed = needs_push(repo=repo, branch_name=branch_name)
+
+        if push_is_needed:
+            _logger.info(f"Pushing changes to '{
+                remote_branch_name}' branch of remote '{remote_name}'...")
+            result: PushInfoList = remote.push(
+                refspec=f"{branch_name}:{remote_branch_name}", progress=RemoteProgressReporter(_logger), kill_after_timeout=timeout)
+
+            try:
+                assert len(result) != 0
+                VALID_PUSH_INFO_FLAGS: list[int] = [PushInfo.FAST_FORWARD, PushInfo.NEW_HEAD,
+                                                    PushInfo.UP_TO_DATE, PushInfo.FORCED_UPDATE, PushInfo.NEW_TAG]
+                for push_info in result:
+                    _logger.debug("+------------+")
+                    _logger.debug("| Push Info: |")
+                    _logger.debug("+------------+")
+                    _logger.debug(f"Flag: {push_info.flags}")
+                    _logger.debug(f"Local ref: {push_info.local_ref}")
+                    _logger.debug(f"Remote Ref: {push_info.remote_ref}")
+                    _logger.debug(f"Remote ref string: {
+                        push_info.remote_ref_string}")
+                    _logger.debug(f"Old Commit: {push_info.old_commit}")
+                    _logger.debug(f"Summary: {push_info.summary.strip()}")
+                    if push_info.flags not in VALID_PUSH_INFO_FLAGS:
+                        if push_info.flags == PushInfo.ERROR:
+                            _logger.error(
+                                "Incomplete push error: Push contains rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
+                        else:
+                            _logger.error(
+                                "Unexpected push error, maybe the remote rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
+                        return False
+            except AssertionError:
+                _logger.error(f"Pushing changes to remote '{
+                    remote_name}' completely failed. Check your internet connection and run in 'debug' mode to see the remote push progress.")
+                return False
+
+            _logger.info(f"Changes pushed successfully to '{
+                branch_name}' branch of remote '{remote_name}'.")
+            if not has_tracking_branch(repo.active_branch):
+                _logger.debug(f"Setting '{branch_name}' upstream branch to '{
+                    remote_name}/{remote_branch_name}'..")
+                repo.active_branch.set_tracking_branch(
+                    repo.refs[f"{remote_name}/{remote_branch_name}"])
+
+        else:
+            _logger.info("Already up-to-date. Skipping..")
         return True
     except IndexError:
         _logger.error(f"Error accessing remote '{
