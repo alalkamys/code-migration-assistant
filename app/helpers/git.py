@@ -3,11 +3,11 @@ from app.config import RemoteProgressReporter
 
 from git import Actor
 from git import Repo
+from git.exc import GitCommandError
+from git.exc import NoSuchPathError
 from git.refs.head import Head
 from git.remote import PushInfo
 from git.remote import PushInfoList
-from git.exc import GitCommandError
-from git.exc import NoSuchPathError
 from typing import Any
 import json
 import logging
