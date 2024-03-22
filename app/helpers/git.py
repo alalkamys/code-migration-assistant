@@ -3,15 +3,17 @@ from app.config import RemoteProgressReporter
 
 from git import Actor
 from git import Repo
+from git.exc import GitCommandError
+from git.exc import NoSuchPathError
 from git.refs.head import Head
 from git.remote import PushInfo
 from git.remote import PushInfoList
-from git.exc import GitCommandError
-from git.exc import NoSuchPathError
 from typing import Any
+from typing import Union
 import json
 import logging
 import os
+import re
 import sys
 
 _logger = logging.getLogger(app_config.APP_NAME)
@@ -133,7 +135,7 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
     return result
 
 
-def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
+def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> bool:
     """Set up identity configuration for a GitPython repository.
 
     Args:
@@ -158,37 +160,91 @@ def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
         return False
 
 
-def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bool:
-    """Checkout or create a new branch in the local repository.
+def configure_divergent_branches_reconciliation_method(repo: Repo, rebase: bool = False, fast_forward_only: bool = False) -> bool:
+    """Configure the reconciliation method for handling divergent branches in a GitPython repository.
+
+    This function configures the reconciliation method to handle situations where the local and remote branches have diverged during pull operations.
+
+    Args:
+        repo (Repo): The GitPython repository object.
+        rebase (bool, optional): If True, set the reconciliation method to rebase. Defaults to False.
+        fast_forward_only (bool, optional): If True, set the reconciliation method to fast-forward only. Ignored if 'rebase' is True. Defaults to False.
+
+    Returns:
+        bool: True if the reconciliation method was configured successfully, False otherwise.
+    """
+    try:
+        config_writer = repo.config_writer()
+        if fast_forward_only:
+            _logger.debug(
+                "Setting reconciliation method to fast-forward only..")
+            config_writer.set_value('pull', 'ff', 'only').release()
+        elif rebase:
+            _logger.debug("Setting reconciliation method to rebase..")
+            config_writer.set_value('pull', 'rebase', 'true').release()
+        else:
+            _logger.debug("Setting reconciliation method to merge..")
+            config_writer.set_value('pull', 'rebase', 'false').release()
+        del (config_writer)
+        return True
+    except Exception as e:
+        _logger.error(f"An error occurred while setting up reconciliation method: {
+                      str(e).strip()}")
+        return False
+
+
+def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None, remote_name: str = "origin") -> bool:
+    """Checkout an existing branch or create a new branch in the local repository.
+
+    This function checks out an existing branch or creates a new branch in the local repository.
+    If the specified branch already exists locally, it switches to that branch.
+    If the branch does not exist locally but exists in the remote repository, it creates a new local branch
+    tracking the remote branch and switches to it.
+    If the specified branch does not exist locally or remotely, it attempts to create a new branch
+    based on the provided base branch (or the current branch if not specified).
 
     Args:
         repo (Repo): The GitPython Repo object representing the local repository.
         branch_name (str): The name of the branch to checkout or create.
         from_branch (str, optional): The name of the base branch to create the new branch from.
             If None, create the new branch from the current branch. Defaults to None.
+        remote_name (str, optional): The name of the remote repository. Defaults to "origin".
 
     Returns:
         bool: True if the branch was successfully checked out or created, False otherwise.
     """
     try:
+        remote_branch_name = f"{remote_name}/{branch_name}"
         if branch_name in repo.branches:
             _logger.info(
-                f"'{branch_name}' branch already exists, checking out..")
+                f"'{branch_name}' branch already exists. Switching..")
             branch = repo.branches[branch_name]
+        elif remote_branch_name in repo.refs:
+            _logger.info(f"'{remote_branch_name}' exists.")
+            branch = repo.create_head(branch_name, commit=remote_branch_name)
+            _logger.info(f"Branch '{branch_name}' set up to track '{
+                         remote_branch_name}'")
+            branch.set_tracking_branch(repo.refs[remote_branch_name])
         else:
             _logger.info(f"'{branch_name}' doesn't exist, creating..")
-            from_branch = from_branch or repo.active_branch.name
+            from_branch = from_branch or get_default_branch_name(repo=repo, remote_name=remote_name)
+            remote_from_branch = f"{remote_name}/{from_branch}"
             if from_branch in repo.branches:
                 branch = repo.create_head(branch_name, commit=from_branch)
                 _logger.info(f"Created new branch '{
-                    branch_name}' based on '{from_branch}' branch")
+                    branch_name}' based on '{from_branch}' branch. Switching..")
+            elif remote_from_branch in repo.refs:
+                branch = repo.create_head(
+                    branch_name, commit=remote_from_branch)
+                _logger.info(f"Created new branch '{
+                    branch_name}' based on '{remote_from_branch}' branch. Switching..")
             else:
                 _logger.error(
                     f"Error: '{from_branch}' based on branch doesn't exist")
                 return False
 
         branch.checkout()
-        _logger.info(f"Checked out branch '{branch_name}' successfully.")
+        _logger.info(f"Switched to branch '{branch_name}' successfully.")
         return True
 
     except GitCommandError as e:
@@ -244,7 +300,7 @@ def commit_changes(repo: Repo, title: str, description: str = None, author: Acto
 
 
 def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: str | None = None, timeout: int | None = 180) -> bool:
-    """Push changes to the remote repository.
+    """Push changes to the remote repository, pulling changes from the remote branch if it exists.
 
     Args:
         repo (Repo): The GitPython Repo object representing the local repository.
@@ -264,7 +320,8 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
         This function pushes changes from the active local branch to the specified remote branch. 
         It handles various scenarios such as existing and non-existing remotes, and provides detailed logging 
         information during the push operation. The timeout parameter allows customization of the maximum time 
-        allowed for the push operation.
+        allowed for the push operation. Before pushing, if the specified remote branch exists, it pulls changes 
+        from that branch to ensure synchronization.
 
     Example:
         # Push changes from the active branch to the 'main' branch of the remote repository 'origin'
@@ -276,44 +333,69 @@ def push_changes(repo: Repo, remote_name: str = 'origin', remote_branch_name: st
         remote = repo.remotes[remote_name]
         branch_name = repo.active_branch.name
         remote_branch_name = remote_branch_name if remote_branch_name else branch_name
-        _logger.info(f"Pushing changes to '{
-                     remote_branch_name}' branch of remote '{remote_name}'...")
-        result: PushInfoList = remote.push(
-            refspec=f"{branch_name}:{remote_branch_name}", progress=RemoteProgressReporter(_logger), kill_after_timeout=timeout)
-        try:
-            assert len(result) != 0
-            VALID_PUSH_INFO_FLAGS: list[int] = [PushInfo.FAST_FORWARD, PushInfo.NEW_HEAD,
-                                                PushInfo.UP_TO_DATE, PushInfo.FORCED_UPDATE, PushInfo.NEW_TAG]
-            for push_info in result:
-                _logger.debug("+------------+")
-                _logger.debug("| Push Info: |")
-                _logger.debug("+------------+")
-                _logger.debug(f"Flag: {push_info.flags}")
-                _logger.debug(f"Local ref: {push_info.local_ref}")
-                _logger.debug(f"Remote Ref: {push_info.remote_ref}")
-                _logger.debug(f"Remote ref string: {
-                    push_info.remote_ref_string}")
-                _logger.debug(f"Old Commit: {push_info.old_commit}")
-                _logger.debug(f"Summary: {push_info.summary.strip()}")
-                if push_info.flags not in VALID_PUSH_INFO_FLAGS:
-                    if push_info.flags == PushInfo.ERROR:
-                        _logger.error(
-                            f"Incomplete push error: Push contains rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
-                    else:
-                        _logger.error(
-                            "Unexpected push error, maybe the remote rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
-                    return False
-        except AssertionError:
-            _logger.error(f"Pushing changes to remote '{
-                          remote_name}' completely failed. Check your internet connection and run in 'debug' mode to see the remote push progress.")
-            return False
-        _logger.info(f"Changes pushed successfully to '{
-            branch_name}' branch of remote '{remote_name}'.")
 
-        _logger.debug(f"Setting '{branch_name}' upstream branch to '{remote_name}/{
-                      remote_branch_name}'..")
-        repo.active_branch.set_tracking_branch(
-            repo.refs[f"{remote_name}/{remote_branch_name}"])
+        push_is_needed = True
+
+        remote_refs = remote.refs
+        if remote_branch_name in remote_refs:
+            _logger.debug(
+                f"'{remote_name}/{remote_branch_name}' remote branch exists.")
+            if not has_tracking_branch(repo.active_branch):
+                _logger.debug(
+                    f"'{branch_name}' has no tracking branch. Setting..")
+                repo.active_branch.set_tracking_branch(
+                    repo.refs[f"{remote_name}/{remote_branch_name}"])
+            _logger.debug(f"Pulling changes from '{
+                          remote_branch_name}' branch of remote '{remote_name}' to '{branch_name}'...")
+            remote.pull(
+                refspec=remote_branch_name, kill_after_timeout=timeout)
+
+            push_is_needed = needs_push(repo=repo, branch_name=branch_name)
+
+        if push_is_needed:
+            _logger.info(f"Pushing changes to '{
+                remote_branch_name}' branch of remote '{remote_name}'...")
+            result: PushInfoList = remote.push(
+                refspec=f"{branch_name}:{remote_branch_name}", progress=RemoteProgressReporter(_logger), kill_after_timeout=timeout)
+
+            try:
+                assert len(result) != 0
+                VALID_PUSH_INFO_FLAGS: list[int] = [PushInfo.FAST_FORWARD, PushInfo.NEW_HEAD,
+                                                    PushInfo.UP_TO_DATE, PushInfo.FORCED_UPDATE, PushInfo.NEW_TAG]
+                for push_info in result:
+                    _logger.debug("+------------+")
+                    _logger.debug("| Push Info: |")
+                    _logger.debug("+------------+")
+                    _logger.debug(f"Flag: {push_info.flags}")
+                    _logger.debug(f"Local ref: {push_info.local_ref}")
+                    _logger.debug(f"Remote Ref: {push_info.remote_ref}")
+                    _logger.debug(f"Remote ref string: {
+                        push_info.remote_ref_string}")
+                    _logger.debug(f"Old Commit: {push_info.old_commit}")
+                    _logger.debug(f"Summary: {push_info.summary.strip()}")
+                    if push_info.flags not in VALID_PUSH_INFO_FLAGS:
+                        if push_info.flags == PushInfo.ERROR:
+                            _logger.error(
+                                "Incomplete push error: Push contains rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
+                        else:
+                            _logger.error(
+                                "Unexpected push error, maybe the remote rejected heads. Check your internet connection and run in 'debug' mode to see more details.")
+                        return False
+            except AssertionError:
+                _logger.error(f"Pushing changes to remote '{
+                    remote_name}' completely failed. Check your internet connection and run in 'debug' mode to see the remote push progress.")
+                return False
+
+            _logger.info(f"Changes pushed successfully to '{
+                branch_name}' branch of remote '{remote_name}'.")
+            if not has_tracking_branch(repo.active_branch):
+                _logger.debug(f"Setting '{branch_name}' upstream branch to '{
+                    remote_name}/{remote_branch_name}'..")
+                repo.active_branch.set_tracking_branch(
+                    repo.refs[f"{remote_name}/{remote_branch_name}"])
+
+        else:
+            _logger.info("Already up-to-date. Skipping..")
         return True
     except IndexError:
         _logger.error(f"Error accessing remote '{
@@ -377,3 +459,24 @@ def needs_push(repo: Repo, branch_name: str | None = None) -> bool:
     if tracking_branch:
         return any(repo.iter_commits(f"{tracking_branch.name}..{branch.name}"))
     return False
+
+
+def get_default_branch_name(repo: Repo, remote_name: str = "origin") -> Union[str, None]:
+    """Get the default branch name of a Git repository.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        remote_name (str, optional): The name of the remote repository. Defaults to "origin".
+
+    Returns:
+        Union[str, None]: The name of the default branch, or None if not found.
+    """
+    try:
+        show_result = repo.git.remote("show", remote_name)
+        matches = re.search(r"\s*HEAD branch:\s*(.*)", show_result)
+        if matches:
+            return matches.group(1)
+    except Exception as e:
+        _logger.error(f"Error while querying the default branch: {e}")
+
+    return None

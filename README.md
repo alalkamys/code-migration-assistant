@@ -292,7 +292,7 @@ Below is an explanation of each field in the configuration file:
 | `AZURE_DEVOPS_PAT`                                     | Azure DevOps Personal Access Token (PAT)                                  | `None`                               |
 | `GITHUB_TOKEN`                                         | GitHub Personal Access Token (PAT)                                        | `None`                               |
 | `GITHUB_ENTERPRISE_TOKEN`                              | GitHub Enterprise Personal Access Token (PAT)                             | `None`                               |
-| `CODE_MIGRATION_ASSISTANT_USER_AGENT`                  | User agent used for HTTP requests by Code Migration Assistant             | `alalkamys`/code-migration-assistant |
+| `CODE_MIGRATION_ASSISTANT_USER_AGENT`                  | User agent used for HTTP requests by Code Migration Assistant             | `alalkamys/code-migration-assistant` |
 
 <!--*********************  R E F E R E N C E S  *********************-->
 

@@ -1,6 +1,7 @@
 from app.config import app_config
 from app.helpers.git import checkout_branch
 from app.helpers.git import commit_changes
+from app.helpers.git import configure_divergent_branches_reconciliation_method
 from app.helpers.git import get_files_count
 from app.helpers.git import has_tracking_branch
 from app.helpers.git import identity_setup
@@ -81,6 +82,17 @@ if __name__ == "__main__":
                         continue
                     _logger.info("Exiting..")
                     sys.exit(2)
+
+            reconciliation_method_configured = configure_divergent_branches_reconciliation_method(
+                repo=repo, rebase=True)
+            if not reconciliation_method_configured:
+                _logger.error(
+                    f"Failed to configure the reconciliation method for '{repo_name}'. Review the logs for more details")
+                if repo != TARGET_REPOS[-1]:
+                    _logger.info("Skipping to the next migration..")
+                    continue
+                _logger.info("Exiting..")
+                sys.exit(7)
 
             if check_branch:
                 branch_checked = checkout_branch(
