@@ -227,7 +227,7 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None, remot
             branch.set_tracking_branch(repo.refs[remote_branch_name])
         else:
             _logger.info(f"'{branch_name}' doesn't exist, creating..")
-            from_branch = from_branch or repo.active_branch.name
+            from_branch = from_branch or get_default_branch_name(repo=repo, remote_name=remote_name)
             remote_from_branch = f"{remote_name}/{from_branch}"
             if from_branch in repo.branches:
                 branch = repo.create_head(branch_name, commit=from_branch)
