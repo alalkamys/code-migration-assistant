@@ -9,9 +9,11 @@ from git.refs.head import Head
 from git.remote import PushInfo
 from git.remote import PushInfoList
 from typing import Any
+from typing import Union
 import json
 import logging
 import os
+import re
 import sys
 
 _logger = logging.getLogger(app_config.APP_NAME)
@@ -457,3 +459,24 @@ def needs_push(repo: Repo, branch_name: str | None = None) -> bool:
     if tracking_branch:
         return any(repo.iter_commits(f"{tracking_branch.name}..{branch.name}"))
     return False
+
+
+def get_default_branch_name(repo: Repo, remote_name: str = "origin") -> Union[str, None]:
+    """Get the default branch name of a Git repository.
+
+    Args:
+        repo (Repo): The GitPython Repo object representing the local repository.
+        remote_name (str, optional): The name of the remote repository. Defaults to "origin".
+
+    Returns:
+        Union[str, None]: The name of the default branch, or None if not found.
+    """
+    try:
+        show_result = repo.git.remote("show", remote_name)
+        matches = re.search(r"\s*HEAD branch:\s*(.*)", show_result)
+        if matches:
+            return matches.group(1)
+    except Exception as e:
+        _logger.error(f"Error while querying the default branch: {e}")
+
+    return None
