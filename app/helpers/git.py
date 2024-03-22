@@ -158,6 +158,39 @@ def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> bool:
         return False
 
 
+def configure_divergent_branches_reconciliation_method(repo: Repo, rebase: bool = False, fast_forward_only: bool = False) -> bool:
+    """Configure the reconciliation method for handling divergent branches in a GitPython repository.
+
+    This function configures the reconciliation method to handle situations where the local and remote branches have diverged during pull operations.
+
+    Args:
+        repo (Repo): The GitPython repository object.
+        rebase (bool, optional): If True, set the reconciliation method to rebase. Defaults to False.
+        fast_forward_only (bool, optional): If True, set the reconciliation method to fast-forward only. Ignored if 'rebase' is True. Defaults to False.
+
+    Returns:
+        bool: True if the reconciliation method was configured successfully, False otherwise.
+    """
+    try:
+        config_writer = repo.config_writer()
+        if fast_forward_only:
+            _logger.debug(
+                "Setting reconciliation method to fast-forward only..")
+            config_writer.set_value('pull', 'ff', 'only').release()
+        elif rebase:
+            _logger.debug("Setting reconciliation method to rebase..")
+            config_writer.set_value('pull', 'rebase', 'true').release()
+        else:
+            _logger.debug("Setting reconciliation method to merge..")
+            config_writer.set_value('pull', 'rebase', 'false').release()
+        del (config_writer)
+        return True
+    except Exception as e:
+        _logger.error(f"An error occurred while setting up reconciliation method: {
+                      str(e).strip()}")
+        return False
+
+
 def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None, remote_name: str = "origin") -> bool:
     """Checkout an existing branch or create a new branch in the local repository.
 
@@ -199,7 +232,8 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None, remot
                 _logger.info(f"Created new branch '{
                     branch_name}' based on '{from_branch}' branch. Switching..")
             elif remote_from_branch in repo.refs:
-                branch = repo.create_head(branch_name, commit=remote_from_branch)
+                branch = repo.create_head(
+                    branch_name, commit=remote_from_branch)
                 _logger.info(f"Created new branch '{
                     branch_name}' based on '{remote_from_branch}' branch. Switching..")
             else:
