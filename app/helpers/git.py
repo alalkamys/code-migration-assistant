@@ -133,7 +133,7 @@ def load_target_repos(repos: list[dict]) -> list[Repo]:
     return result
 
 
-def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
+def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> bool:
     """Set up identity configuration for a GitPython repository.
 
     Args:
