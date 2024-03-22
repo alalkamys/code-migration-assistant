@@ -158,37 +158,57 @@ def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> None:
         return False
 
 
-def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None) -> bool:
-    """Checkout or create a new branch in the local repository.
+def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None, remote_name: str = "origin") -> bool:
+    """Checkout an existing branch or create a new branch in the local repository.
+
+    This function checks out an existing branch or creates a new branch in the local repository.
+    If the specified branch already exists locally, it switches to that branch.
+    If the branch does not exist locally but exists in the remote repository, it creates a new local branch
+    tracking the remote branch and switches to it.
+    If the specified branch does not exist locally or remotely, it attempts to create a new branch
+    based on the provided base branch (or the current branch if not specified).
 
     Args:
         repo (Repo): The GitPython Repo object representing the local repository.
         branch_name (str): The name of the branch to checkout or create.
         from_branch (str, optional): The name of the base branch to create the new branch from.
             If None, create the new branch from the current branch. Defaults to None.
+        remote_name (str, optional): The name of the remote repository. Defaults to "origin".
 
     Returns:
         bool: True if the branch was successfully checked out or created, False otherwise.
     """
     try:
+        remote_branch_name = f"{remote_name}/{branch_name}"
         if branch_name in repo.branches:
             _logger.info(
-                f"'{branch_name}' branch already exists, checking out..")
+                f"'{branch_name}' branch already exists. Switching..")
             branch = repo.branches[branch_name]
+        elif remote_branch_name in repo.refs:
+            _logger.info(f"'{remote_branch_name}' exists.")
+            branch = repo.create_head(branch_name, commit=remote_branch_name)
+            _logger.info(f"Branch '{branch_name}' set up to track '{
+                         remote_branch_name}'")
+            branch.set_tracking_branch(repo.refs[remote_branch_name])
         else:
             _logger.info(f"'{branch_name}' doesn't exist, creating..")
             from_branch = from_branch or repo.active_branch.name
+            remote_from_branch = f"{remote_name}/{from_branch}"
             if from_branch in repo.branches:
                 branch = repo.create_head(branch_name, commit=from_branch)
                 _logger.info(f"Created new branch '{
-                    branch_name}' based on '{from_branch}' branch")
+                    branch_name}' based on '{from_branch}' branch. Switching..")
+            elif remote_from_branch in repo.refs:
+                branch = repo.create_head(branch_name, commit=remote_from_branch)
+                _logger.info(f"Created new branch '{
+                    branch_name}' based on '{remote_from_branch}' branch. Switching..")
             else:
                 _logger.error(
                     f"Error: '{from_branch}' based on branch doesn't exist")
                 return False
 
         branch.checkout()
-        _logger.info(f"Checked out branch '{branch_name}' successfully.")
+        _logger.info(f"Switched to branch '{branch_name}' successfully.")
         return True
 
     except GitCommandError as e:
