@@ -8,7 +8,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/alalkamys/code-migration-assistant)](https://github.com/alalkamys/code-migration-assistant/issues)
-[![Version](https://img.shields.io/github/release/alalkamys/code-migration-assistant.svg)](https://github.com/alalkamys/code-migration-assistant/releases/)
+[![GitHub Release](https://img.shields.io/github/v/release/alalkamys/code-migration-assistant)](https://github.com/alalkamys/code-migration-assistant/releases/)
 
 `Code Migration Assistant` is a powerful tool designed to streamline and automate the process of code migration at scale. With its intuitive interface and robust features, it enables users to effortlessly search for and replace patterns across multiple repositories, saving time and ensuring consistency in codebases.
 
@@ -32,6 +32,8 @@ With `Code Migration Assistant` teams can accelerate the migration of code repos
     - [`replacements` (Optional)](#replacements-optional)
     - [`filesToExclude` (Optional)](#filestoexclude-optional)
   - [Environment Variables](#environment-variables)
+  - [⚔️ Developed By](#️-developed-by)
+  - [:book: Author](#book-author)
 <!--te-->
 
 ## Key Features
@@ -55,6 +57,7 @@ With `Code Migration Assistant`, developers and DevOps teams can efficiently man
 ## Requriements
 
 - [Git:][git] `Code Migration Assistant` relies on Git for cloning and interacting with repositories. Make sure Git is installed on your system and configured properly.
+- Python 3.6 or higher.
 - Access to Target Repositories: Ensure that you have appropriate access permissions to clone and modify the target repositories specified in the configuration file (`config.json`).
 - Environment Variables: Set up the required environment variables such as `AZURE_DEVOPS_PAT`, `GITHUB_TOKEN` and `GITHUB_ENTERPRISE_TOKEN` with the appropriate access permissions to authenticate with the respective SCM providers and raise pull requests.
 
@@ -232,7 +235,7 @@ Below is an explanation of each field in the configuration file:
 
   - For `azuredevops`:
 
-    - `targetRefName` (required): The name of the target branch of the pull request. (e.g `main` or `refs/heads/main`).
+    - `targetRefName` (optional): The name of the target branch of the pull request. (e.g `main` or `refs/heads/main`). Defaults to the remote repository default branch.
     - `title` (required): The title of the pull request.
     - `description` (optional): The description of the pull request.
     - `labels` (optional): Labels to be applied to the pull request.
@@ -244,7 +247,7 @@ Below is an explanation of each field in the configuration file:
 
   - For `github`:
 
-    - `base` (required): The name of the branch you want the changes pulled into. This should be an existing branch on the current repository. You cannot submit a pull request to one repository that requests a merge to a base of another repository (e.g `main` or `refs/heads/main`).
+    - `base` (optional): The name of the branch you want the changes pulled into. This should be an existing branch on the current repository. You cannot submit a pull request to one repository that requests a merge to a base of another repository (e.g `main` or `refs/heads/main`). Defaults to the remote repository default branch.
     - `title` (required): The title of the pull request.
     - `body` (optional): The body content of the pull request.
     - `maintainer_can_modify` (optional): Indicates whether maintainers can modify the pull request.
@@ -293,6 +296,20 @@ Below is an explanation of each field in the configuration file:
 | `GITHUB_TOKEN`                                         | GitHub Personal Access Token (PAT)                                        | `None`                               |
 | `GITHUB_ENTERPRISE_TOKEN`                              | GitHub Enterprise Personal Access Token (PAT)                             | `None`                               |
 | `CODE_MIGRATION_ASSISTANT_USER_AGENT`                  | User agent used for HTTP requests by Code Migration Assistant             | `alalkamys/code-migration-assistant` |
+
+<br />
+
+## ⚔️ Developed By
+
+<a href="https://www.linkedin.com/in/shehab-el-deen/" target="_blank"><img alt="LinkedIn" align="right" title="LinkedIn" height="24" width="24" src="docs/assets/imgs/linkedin.png"></a>
+
+Shehab El-Deen Alalkamy
+
+<br />
+
+## :book: Author
+
+Shehab El-Deen Alalkamy
 
 <!--*********************  R E F E R E N C E S  *********************-->
 
