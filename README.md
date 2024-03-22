@@ -235,7 +235,7 @@ Below is an explanation of each field in the configuration file:
 
   - For `azuredevops`:
 
-    - `targetRefName` (required): The name of the target branch of the pull request. (e.g `main` or `refs/heads/main`).
+    - `targetRefName` (optional): The name of the target branch of the pull request. (e.g `main` or `refs/heads/main`). Defaults to the remote repository default branch.
     - `title` (required): The title of the pull request.
     - `description` (optional): The description of the pull request.
     - `labels` (optional): Labels to be applied to the pull request.
@@ -247,7 +247,7 @@ Below is an explanation of each field in the configuration file:
 
   - For `github`:
 
-    - `base` (required): The name of the branch you want the changes pulled into. This should be an existing branch on the current repository. You cannot submit a pull request to one repository that requests a merge to a base of another repository (e.g `main` or `refs/heads/main`).
+    - `base` (optional): The name of the branch you want the changes pulled into. This should be an existing branch on the current repository. You cannot submit a pull request to one repository that requests a merge to a base of another repository (e.g `main` or `refs/heads/main`). Defaults to the remote repository default branch.
     - `title` (required): The title of the pull request.
     - `body` (optional): The body content of the pull request.
     - `maintainer_can_modify` (optional): Indicates whether maintainers can modify the pull request.
