@@ -1,6 +1,7 @@
 from app.config import app_config
 from app.helpers import azuredevops
 from app.helpers import github
+from app.helpers.git import get_default_branch_name
 
 from azure.devops.credentials import BasicAuthentication
 from azure.devops.v7_0.git import GitPullRequest
@@ -51,7 +52,14 @@ def is_open_pull_requests(repo: Repo, pull_request_config: dict[str, dict[str, A
 
             source_ref_name = f"refs/heads/{
                 repo.active_branch.name}"
-            target_ref_name: str = pull_request_payload['targetRefName']
+            target_ref_name: str = pull_request_payload.get(
+                'targetRefName', None)
+
+            if not target_ref_name:
+                default_branch_name = get_default_branch_name(repo=repo)
+                _logger.info(f"Setting targetRefName to the default branch '{
+                             default_branch_name}'")
+                target_ref_name = default_branch_name
 
             if not target_ref_name.startswith("refs/heads/"):
                 _logger.debug(
@@ -104,7 +112,13 @@ def is_open_pull_requests(repo: Repo, pull_request_config: dict[str, dict[str, A
 
             head_ref = f"refs/heads/{
                 repo.active_branch.name}"
-            base_ref: str = pull_request_payload['base']
+            base_ref: str = pull_request_payload.get('base', None)
+
+            if not base_ref:
+                default_branch_name = get_default_branch_name(repo=repo)
+                _logger.info(f"Setting base to the default branch '{
+                             default_branch_name}'")
+                base_ref = default_branch_name
 
             if not base_ref.startswith("refs/heads/"):
                 _logger.debug(
@@ -214,7 +228,14 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
                 pull_request_payload.get('description', []))
             pull_request_payload['sourceRefName'] = f"refs/heads/{
                 repo.active_branch.name}"
-            target_ref_name: str = pull_request_payload['targetRefName']
+            target_ref_name: str = pull_request_payload.get(
+                'targetRefName', None)
+
+            if not target_ref_name:
+                default_branch_name = get_default_branch_name(repo=repo)
+                _logger.info(f"Setting targetRefName to the default branch '{
+                             default_branch_name}'")
+                target_ref_name = default_branch_name
 
             if not target_ref_name.startswith("refs/heads/"):
                 _logger.debug(
@@ -257,7 +278,13 @@ def raise_pull_request(repo: Repo, pull_request_config: dict[str, dict[str, Any]
                 pull_request_payload.get('body', []))
             pull_request_payload['head'] = f"refs/heads/{
                 repo.active_branch.name}"
-            base_ref: str = pull_request_payload['base']
+            base_ref: str = pull_request_payload.get('base', None)
+
+            if not base_ref:
+                default_branch_name = get_default_branch_name(repo=repo)
+                _logger.info(f"Setting base to the default branch '{
+                             default_branch_name}'")
+                base_ref = default_branch_name
 
             if not base_ref.startswith("refs/heads/"):
                 _logger.debug(
