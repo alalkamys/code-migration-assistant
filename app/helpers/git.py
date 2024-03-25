@@ -4,135 +4,15 @@ from app.config import RemoteProgressReporter
 from git import Actor
 from git import Repo
 from git.exc import GitCommandError
-from git.exc import NoSuchPathError
 from git.refs.head import Head
 from git.remote import PushInfo
 from git.remote import PushInfoList
 from typing import Any
 from typing import Union
-import json
 import logging
-import os
 import re
-import sys
 
 _logger = logging.getLogger(app_config.APP_NAME)
-
-
-def load_targets_config(file_path: str) -> dict[str, Any]:
-    """Load configuration from a JSON file.
-
-    Args:
-        file_path (str): The path to the JSON configuration file.
-
-    Returns:
-        dict: A dictionary containing the loaded configuration.
-
-    Raises:
-        FileNotFoundError: If the configuration file is not found.
-        json.JSONDecodeError: If the JSON content is not valid.
-        Exception: For any other unexpected error during loading.
-    """
-    try:
-        file_abspath = os.path.abspath(file_path)
-        with open(file_abspath) as f:
-            _logger.info(f"Loading '{file_abspath}'")
-            return json.load(f)
-
-    except FileNotFoundError:
-        error_message = f"Configuration file '{
-            file_abspath}' not found."
-
-    except json.JSONDecodeError:
-        error_message = f"Unable to load configuration from '{
-            file_abspath}'. Invalid JSON format."
-
-    except Exception as e:
-        error_message = f"An unexpected error occurred while loading '{
-            file_abspath}': {str(e).strip()}"
-
-    _logger.error(error_message)
-    _logger.info("Exiting..")
-    sys.exit(1)
-
-
-def load_target_repos(repos: list[dict]) -> list[Repo]:
-    """Load target repositories.
-
-    Args:
-        repos (list[dict]): A list of dictionaries containing repository information.
-
-    Returns:
-        list[Repo]: A list of GitPython Repo objects representing the loaded repositories.
-    """
-    result = []
-    for repo in repos:
-        try:
-            repo_type = repo['type'].strip().lower()
-            repo_name = repo['name']
-            scm_provider_data: dict[str, str] = repo['scmProvider']
-            if repo_type == 'local':
-                _logger.info(f"'{repo_name}' is a 'Local' repository. Using..")
-                repo_obj = Repo(path=repo['source'])
-            elif repo_type == 'remote':
-                _logger.info(
-                    f"'{repo_name}' is a 'Remote' repository. Cloning..")
-                repo_obj = Repo.clone_from(url=repo['source'], to_path=os.path.join(
-                    app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
-            scm_provider_type = scm_provider_data['type'].strip(
-            ).lower().replace(' ', '')
-            if scm_provider_type == "azuredevops":
-                _logger.debug(f"'{scm_provider_type}' SCM provider detected")
-                repo_obj.scm_provider = {
-                    'type': scm_provider_type,
-                    'base_url': scm_provider_data['baseUrl'],
-                    'project': scm_provider_data['project']
-                }
-            elif scm_provider_type == "github":
-                _logger.debug(f"'{scm_provider_type}' SCM provider detected")
-                repo_obj.scm_provider = {
-                    'type': scm_provider_type,
-                    'domain': scm_provider_data['domain'],
-                    'owner_or_org': scm_provider_data['ownerOrOrg'].strip()
-                }
-            result.append(repo_obj)
-        except GitCommandError as git_cmd_err:
-            if git_cmd_err.status == 128 and 'already exists' in git_cmd_err.stderr:
-                repo_abspath = os.path.abspath(os.path.join(
-                    app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
-                _logger.info(f"'{repo_abspath}' already exists, using..")
-                repo_obj = Repo(path=repo_abspath)
-                scm_provider_type = scm_provider_data['type'].strip(
-                ).lower().replace(' ', '')
-                if scm_provider_type == "azuredevops":
-                    _logger.debug(
-                        f"'{scm_provider_type}' SCM provider detected")
-                    repo_obj.scm_provider = {
-                        'type': scm_provider_type,
-                        'base_url': scm_provider_data['baseUrl'],
-                        'project': scm_provider_data['project']
-                    }
-                elif scm_provider_type == "github":
-                    _logger.debug(
-                        f"'{scm_provider_type}' SCM provider detected")
-                    repo_obj.scm_provider = {
-                        'type': scm_provider_type,
-                        'domain': scm_provider_data['domain'],
-                        'owner_or_org': scm_provider_data['ownerOrOrg'].strip()
-                    }
-                result.append(repo_obj)
-            else:
-                _logger.error(f"Unexpected GitCommandError: {
-                              str(git_cmd_err).strip()}")
-        except NoSuchPathError:
-            repo_abspath = os.path.abspath(os.path.join(
-                app_config.REMOTE_TARGETS_CLONING_PATH, repo_name))
-            _logger.error(f"Invalid 'Local' repo source path '{
-                repo_abspath}': No such path. Check '{repo_name}' source path")
-        except Exception as e:
-            _logger.error(f"Unexpected error when loading '{
-                          repo_name}': {str(e).strip()}")
-    return result
 
 
 def identity_setup(repo: Repo, actor_username: str, actor_email: str) -> bool:
@@ -227,7 +107,8 @@ def checkout_branch(repo: Repo, branch_name: str, from_branch: str = None, remot
             branch.set_tracking_branch(repo.refs[remote_branch_name])
         else:
             _logger.info(f"'{branch_name}' doesn't exist, creating..")
-            from_branch = from_branch or get_default_branch_name(repo=repo, remote_name=remote_name)
+            from_branch = from_branch or get_default_branch_name(
+                repo=repo, remote_name=remote_name)
             remote_from_branch = f"{remote_name}/{from_branch}"
             if from_branch in repo.branches:
                 branch = repo.create_head(branch_name, commit=from_branch)
