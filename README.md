@@ -216,7 +216,7 @@ Below is an explanation of each field in the configuration file:
 
 ### `targetBranch` (Optional)
 
-- **Description**: Specifies the target branch for the pull request.
+- **Description**: Specifies the target branch on which the replacements will occur and will be the source branch for your pull requests.
 - **Fields**:
   - `name` (required): Name of the target branch.
   - `from` (Optional): Source branch from which the target branch is created.
