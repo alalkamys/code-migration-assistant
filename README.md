@@ -17,6 +17,7 @@ With `Code Migration Assistant` teams can accelerate the migration of code repos
 ## Table of contents
 
 <!--ts-->
+
 - [Code Migration Assistant](#code-migration-assistant)
   - [Table of contents](#table-of-contents)
   - [Key Features](#key-features)
@@ -34,7 +35,6 @@ With `Code Migration Assistant` teams can accelerate the migration of code repos
   - [Environment Variables](#environment-variables)
   - [⚔️ Developed By](#️-developed-by)
   - [:book: Author](#book-author)
-<!--te-->
 
 ## Key Features
 
@@ -286,16 +286,18 @@ Below is an explanation of each field in the configuration file:
 
 ## Environment Variables
 
-| Environment Variable                                   | Usage                                                                     | Default Value                        |
-| ------------------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------ |
-| `CODE_MIGRATION_ASSISTANT_APP_NAME`                    | Name of the Code Migration Assistant application                          | `code_migration_assistant`           |
-| `CODE_MIGRATION_ASSISTANT_LOG_LEVEL`                   | Log level for the Code Migration Assistant application                    | `INFO`                               |
-| `CODE_MIGRATION_ASSISTANT_TARGETS_CONFIG_FILE`         | Path to the targets configuration file for Code Migration Assistant       | `./config.json`                      |
-| `CODE_MIGRATION_ASSISTANT_REMOTE_TARGETS_CLONING_PATH` | Path where remote repositories will be cloned by Code Migration Assistant | `./remote-targets`                   |
-| `AZURE_DEVOPS_PAT`                                     | Azure DevOps Personal Access Token (PAT)                                  | `None`                               |
-| `GITHUB_TOKEN`                                         | GitHub Personal Access Token (PAT)                                        | `None`                               |
-| `GITHUB_ENTERPRISE_TOKEN`                              | GitHub Enterprise Personal Access Token (PAT)                             | `None`                               |
-| `CODE_MIGRATION_ASSISTANT_USER_AGENT`                  | User agent used for HTTP requests by Code Migration Assistant             | `alalkamys/code-migration-assistant` |
+| Environment Variable                                   | Usage                                                                     | Default Value                              |
+| ------------------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------ |
+| `CODE_MIGRATION_ASSISTANT_APP_NAME`                    | Name of the Code Migration Assistant application                          | `code_migration_assistant`                 |
+| `CODE_MIGRATION_ASSISTANT_LOG_LEVEL`                   | Log level for the Code Migration Assistant application                    | `INFO`                                     |
+| `CODE_MIGRATION_ASSISTANT_TARGETS_CONFIG_FILE`         | Path to the targets configuration file for Code Migration Assistant       | `./config.json`                            |
+| `CODE_MIGRATION_ASSISTANT_REMOTE_TARGETS_CLONING_PATH` | Path where remote repositories will be cloned by Code Migration Assistant | `./remote-targets`                         |
+| `AZURE_DEVOPS_PAT`                                     | Azure DevOps Personal Access Token (PAT)                                  | `None`                                     |
+| `GITHUB_TOKEN`                                         | GitHub Personal Access Token (PAT)                                        | `None`                                     |
+| `GITHUB_ENTERPRISE_TOKEN`                              | GitHub Enterprise Personal Access Token (PAT)                             | `None`                                     |
+| `CODE_MIGRATION_ASSISTANT_USER_AGENT`                  | User agent used for HTTP requests by Code Migration Assistant             | `alalkamys/code-migration-assistant`       |
+| `CODE_MIGRATION_ASSISTANT_ACTOR_USERNAME`              | Actor username used for git identity setup                                | `Code Migration Assistant Agent`           |
+| `CODE_MIGRATION_ASSISTANT_ACTOR_EMAIL`                 | Actor email used for git identity setup                                   | `code_migration_assistant_agent@gmail.com` |
 
 <br />
 
