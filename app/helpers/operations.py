@@ -169,7 +169,7 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
             for file in files:
                 file_path = os.path.join(root, file)
                 file_relpath = os.path.relpath(file_path, directory)
-                _logger.info(
+                _logger.debug(
                     f"Searching '{file_relpath}'")
                 try:
                     with open(file_path, 'rb') as f:
@@ -177,7 +177,7 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
                 except Exception as e:
                     _logger.error(f"Error reading file '{
                                   file_relpath}': {str(e)}")
-                    _logger.info("Skipping..")
+                    _logger.debug("Skipping..")
                     continue
                 updated_content = content
                 for pattern, replacement in patterns.items():
@@ -185,7 +185,7 @@ def search_and_replace(directory: str, patterns: dict, excluded_files: list[str]
                         matches = re.findall(pattern, content)
                         if matches:
                             _logger.info(
-                                f"A match was found for pattern '{pattern}'")
+                                f"A match was found for pattern '{pattern}' in '{file_relpath}'")
                             result[pattern]['match'][file_relpath] = len(
                                 matches)
                             result[pattern]['count'] += len(matches)
