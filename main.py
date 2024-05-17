@@ -44,7 +44,6 @@ if __name__ == "__main__":
     if len(TARGET_REPOS) > 0 and len(REPLACEMENTS) > 0:
         _logger.info(f"Loaded '{len(TARGET_REPOS)}' repositories out of '{
             len(TARGETS_CONFIG['targetRepos'])}' provided repositories")
-        _logger.info(f"'{len(TARGET_REPOS)}' target repo(s) found")
         _logger.info("Initiating code migration assistant program..")
         _logger.info(f"Mode: {MODE}")
         final_result = {}
